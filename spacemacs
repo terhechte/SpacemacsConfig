@@ -42,7 +42,6 @@
      ;; shell
      syntax-checking
      osx
-     window-expose
 
      ;; Add support for my most used languages
      clojure
