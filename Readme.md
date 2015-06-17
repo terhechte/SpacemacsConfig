@@ -12,7 +12,7 @@ I'm currently using Emacs mostly for the following things:
 - Org Mode
 
 Enjoy
-[http://twitter.com/terhechte](@terhechte)
+[@terhechte](http://twitter.com/terhechte)
 
 ## Obligatory Screenshot
 
