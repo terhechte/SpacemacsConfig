@@ -1,1 +1,2 @@
-ln -s ./spacemacs ~/.spacemacs
+#!/bin/bash
+ln -s /Users/terhechte/.spacemacsConfig/spacemacs ~/.spacemacs

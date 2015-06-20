@@ -198,6 +198,7 @@ layers configuration."
   (global-set-key (kbd "s-o") 'find-file)
   (global-set-key (kbd "s-p") 'find-file-at-point)
   (global-set-key (kbd "s-t") 'helm-projectile-find-file)
+  (global-set-key (kbd "s-n") 'new-frame)
 
   (global-set-key (kbd "s-v") 'my-paste)
   (global-set-key (kbd "s-c") 'my-copy)
