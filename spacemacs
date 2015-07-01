@@ -181,6 +181,12 @@ before layers configuration."
   "Configuration function.
  This function is called at the very end of Spacemacs initialization after
 layers configuration."
+
+
+  ;; Sane indent for lisp & clojure. otherwise even simple
+  ;; things quickly become code skyscrapers when working with cljs and om
+  (setq lisp-indent-offset 2)
+
   (define-key evil-insert-state-map "\C-g" 'evil-normal-state)
 
   (define-key evil-insert-state-map "\C-e" 'end-of-line)
