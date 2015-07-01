@@ -208,6 +208,10 @@ layers configuration."
   ;; Open new files (dropped onto emacs) in a new frame/window
   (setq ns-pop-up-frames t)
 
+  ;; When drag/dropping files onto emacs, don't insert into the buffer,
+  ;; but open the files
+  (global-set-key [ns-drag-file] 'ns-find-file)
+
   ;; window-splitting
   (global-set-key (kbd "s-1") 'delete-other-windows)
   (global-set-key (kbd "s-2") 'split-window-horizontally)
@@ -219,6 +223,14 @@ layers configuration."
   (global-set-key (kbd "s-=") 'text-scale-increase) 
 
   (global-set-key (kbd "<s-return>" ) 'completion-at-point)
+
+  ;; Remove the C-g binding for smartparens. I use C-g instead of esc or ctrl-c
+  ;; to exit insert mode. With smartparens occupying it, I often couldn't
+  ;; exit insert mode. Awful feeling
+  (eval-after-load "smartparens-mode"
+    '(progn
+       (define-key sp-pair-overlay-keymap (kbd "C-g") nil)
+       (define-key sp-wrap-overlay-keymap (kbd "C-g") nil)))
 
   ;; Emacs check if we have a region, then eval that, otherwise the left sexp
   (defun eval-region-or-left-sexp ()
