@@ -5,6 +5,13 @@
 ;; TODO:
 ;; C-n / C-p for auto-completion windows (right now, use M-n, M-p instead)
 ;; figure out why C-g sometimes doesn't work
+;; this is sticky this 
+
+;; do m-x accents and then a" will enter the ä ö
+(defun accents ()
+  (interactive)
+  (set-language-environment "UTF-8")
+  (activate-input-method "latin-1-alt-postfix"))
 
 (defun my-copy ()
   (interactive)
@@ -16,6 +23,14 @@
   (setq x-select-enable-clipboard t)
   (yank)
   (setq x-select-enable-clipboard nil))
+
+(defun keyboard-escape-quit-first-normal ()
+  (interactive)
+  (message "pew pew")
+  ;; If we're in insert mode, leave, otherwise call normal c-g emacs behaviour
+  (if (evil-insert-state-p)
+      (evil-normal-state)
+    (keyboard-quit)))
 
 (defun dotspacemacs/layers ()
   "Configuration Layers declaration."
@@ -61,6 +76,8 @@
      swift-mode
      ac-dabbrev
      dabbrev
+     simpleclip
+     restclient
      )
    ;; A list of packages and/or extensions that will not be install and loaded.
    dotspacemacs-excluded-packages '()
@@ -182,12 +199,15 @@ before layers configuration."
  This function is called at the very end of Spacemacs initialization after
 layers configuration."
 
+  (global-unset-key (kbd "C-g"))
+  (global-set-key (kbd "C-g") 'keyboard-escape-quit-first-normal)
 
   ;; Sane indent for lisp & clojure. otherwise even simple
   ;; things quickly become code skyscrapers when working with cljs and om
   (setq lisp-indent-offset 2)
 
-  (define-key evil-insert-state-map "\C-g" 'evil-normal-state)
+  ;;(define-key evil-insert-state-map "\C-g" 'evil-normal-state)
+  (define-key evil-insert-state-map "\C-g" 'keyboard-escape-quit-first-normal)
 
   (define-key evil-insert-state-map "\C-e" 'end-of-line)
   (define-key evil-visual-state-map "\C-e" 'evil-end-of-line)
@@ -206,10 +226,14 @@ layers configuration."
   (global-set-key (kbd "s-t") 'helm-projectile-find-file)
   (global-set-key (kbd "s-n") 'new-frame)
 
-  (global-set-key (kbd "s-v") 'my-paste)
-  (global-set-key (kbd "s-c") 'my-copy)
+  ;;(global-set-key (kbd "s-v") 'my-paste)
+  ;;(global-set-key (kbd "s-c") 'my-copy)
 
-  (setq x-select-enable-clipboard nil)
+  ;; Share symmetric keys when opening encrypted fiels
+  (setq epa-file-cache-passphrase-for-symmetric-encryption t)
+
+
+  ;;(setq x-select-enable-clipboard nil)
 
   ;; Open new files (dropped onto emacs) in a new frame/window
   (setq ns-pop-up-frames t)
@@ -229,6 +253,11 @@ layers configuration."
   (global-set-key (kbd "s-=") 'text-scale-increase) 
 
   (global-set-key (kbd "<s-return>" ) 'completion-at-point)
+
+  ;; Simple clip makes it possible to not overwrite clipboard during yanking
+  ;; https://github.com/rolandwalker/simpleclip
+  (cua-mode)
+  (simpleclip-mode 1)
 
   ;; Remove the C-g binding for smartparens. I use C-g instead of esc or ctrl-c
   ;; to exit insert mode. With smartparens occupying it, I often couldn't
