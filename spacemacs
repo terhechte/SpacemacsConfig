@@ -13,25 +13,6 @@
   (set-language-environment "UTF-8")
   (activate-input-method "latin-1-alt-postfix"))
 
-(defun my-copy ()
-  (interactive)
-  (message "Copied")
-  (mac-handle-copy nil))
-
-(defun my-paste ()
-  (interactive)
-  (setq x-select-enable-clipboard t)
-  (yank)
-  (setq x-select-enable-clipboard nil))
-
-(defun keyboard-escape-quit-first-normal ()
-  (interactive)
-  (message "pew pew")
-  ;; If we're in insert mode, leave, otherwise call normal c-g emacs behaviour
-  (if (evil-insert-state-p)
-      (evil-normal-state)
-    (keyboard-quit)))
-
 (defun dotspacemacs/layers ()
   "Configuration Layers declaration."
   (setq-default
@@ -199,15 +180,11 @@ before layers configuration."
  This function is called at the very end of Spacemacs initialization after
 layers configuration."
 
-  (global-unset-key (kbd "C-g"))
-  (global-set-key (kbd "C-g") 'keyboard-escape-quit-first-normal)
-
   ;; Sane indent for lisp & clojure. otherwise even simple
   ;; things quickly become code skyscrapers when working with cljs and om
   (setq lisp-indent-offset 2)
 
-  ;;(define-key evil-insert-state-map "\C-g" 'evil-normal-state)
-  (define-key evil-insert-state-map "\C-g" 'keyboard-escape-quit-first-normal)
+  (define-key evil-insert-state-map "\C-g" 'evil-normal-state)
 
   (define-key evil-insert-state-map "\C-e" 'end-of-line)
   (define-key evil-visual-state-map "\C-e" 'evil-end-of-line)
@@ -226,14 +203,9 @@ layers configuration."
   (global-set-key (kbd "s-t") 'helm-projectile-find-file)
   (global-set-key (kbd "s-n") 'new-frame)
 
-  ;;(global-set-key (kbd "s-v") 'my-paste)
-  ;;(global-set-key (kbd "s-c") 'my-copy)
-
   ;; Share symmetric keys when opening encrypted fiels
   (setq epa-file-cache-passphrase-for-symmetric-encryption t)
 
-
-  ;;(setq x-select-enable-clipboard nil)
 
   ;; Open new files (dropped onto emacs) in a new frame/window
   (setq ns-pop-up-frames t)
