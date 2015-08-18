@@ -2,6 +2,9 @@
 ;; This file is loaded by Spacemacs at startup.
 ;; It must be stored in your home directory.
 
+;; Dirty way to add custom dir
+(progn (cd "~/.spacemacsConfig") (normal-top-level-add-subdirs-to-load-path) (cd "~"))
+
 ;; TODO:
 ;; C-n / C-p for auto-completion windows (right now, use M-n, M-p instead)
 ;; figure out why C-g sometimes doesn't work
@@ -173,6 +176,14 @@ before layers configuration."
    dotspacemacs-default-package-repository nil
    )
   ;; User initialization goes here
+
+  ;; Load Swift Org Mode and customize the org mode languages
+
+  (require 'ob-swift)
+  (org-babel-do-load-languages
+    'org-babel-load-languages
+    '((python . t)(sh . t)(R . t)(C . t)(clojure . t)(lisp . t) (sql . t) (js . t)  (emacs-lisp . t) (css . t)(swift . t)  ))
+
   )
 
 (defun dotspacemacs/config ()
