@@ -11,6 +11,12 @@ I'm currently using Emacs mostly for the following things:
 - HTML/Javascript/CSS
 - Org Mode
 
+### Features
+
+- Half-Working Swift mode for org-mode babel. (see custom/ob-swift.el)
+- Adapted for Mac OS X Keyboard
+- OSX / Emacs movement keybindings (c-e, c-a, etc) in Evil Mode
+
 Enjoy
 [@terhechte](http://twitter.com/terhechte)
 
