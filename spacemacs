@@ -177,12 +177,21 @@ before layers configuration."
    )
   ;; User initialization goes here
 
+  ;; mouse-2 will be Option+Click and mouse-3 will be Cmd+Click
+  (setq mac-emulate-three-button-mouse t)
+
   ;; Load Swift Org Mode and customize the org mode languages
 
   (require 'ob-swift)
   (org-babel-do-load-languages
     'org-babel-load-languages
     '((python . t)(sh . t)(R . t)(C . t)(clojure . t)(lisp . t) (sql . t) (js . t)  (emacs-lisp . t) (css . t)(swift . t)  ))
+
+  ;; fontification in source blocks
+  (setq org-src-fontify-natively t)
+  ;; add swift-mode to fontification
+  (add-to-list 'org-src-lang-modes (cons "swift" 'swift))
+  ;; C-' to enter source block edit mode!
 
   )
 
