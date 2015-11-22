@@ -62,6 +62,7 @@
      dabbrev
      simpleclip
      restclient
+     company-mode
      )
    ;; A list of packages and/or extensions that will not be install and loaded.
    dotspacemacs-excluded-packages '()
@@ -193,6 +194,8 @@ before layers configuration."
   (add-to-list 'org-src-lang-modes (cons "swift" 'swift))
   ;; C-' to enter source block edit mode!
 
+  ;; Swift Company Mode
+  ;(require 'company-sourcekit)
   )
 
 (defun dotspacemacs/config ()
