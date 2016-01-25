@@ -56,6 +56,7 @@
    ;; configuration in `dotspacemacs/config'.
    dotspacemacs-additional-packages
    '(
+     company
      switch-window
      swift-mode
      ac-dabbrev
@@ -196,6 +197,8 @@ before layers configuration."
 
   ;; Swift Company Mode
   ;(require 'company-sourcekit)
+  (require 'flyspell-lazy)
+  (flyspell-lazy-mode 1)
   )
 
 (defun dotspacemacs/config ()

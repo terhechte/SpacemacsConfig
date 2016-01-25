@@ -64,7 +64,7 @@ called by `org-babel-execute-src-block'"
   "Convert RESULTS into an appropriate elisp value.
 If RESULTS look like a table, then convert them into an
 Emacs-lisp table, otherwise return the results as a string."
-  (org-babel-script-escape results))
+  results)
 
 
 (defvar org-babel-swift-wrapper-method
