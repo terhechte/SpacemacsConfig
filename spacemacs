@@ -16,6 +16,23 @@
   (set-language-environment "UTF-8")
   (activate-input-method "latin-1-alt-postfix"))
 
+
+;; Force railwaycats emacs to open drag and drop files
+;; in a new frame instead of replacing the currently selected buffer
+(defun my-dnd-open-local-file (uri _action)
+  (let* ((f (dnd-get-local-file-name uri t)))
+    (if (and f (file-readable-p f))
+      (find-file-other-frame f)
+      (error "Can not read %s" uri))))
+
+(defadvice mac-ae-open-documents (around my-mac-ae-open-documents)
+  "Temporarily replace `dnd-open-local-file`"
+  (progn
+    (advice-add 'dnd-open-local-file :around #'my-dnd-open-local-file)
+    ad-do-it
+    (advice-remove 'dnd-open-local-file #'my-dnd-open-local-file)))
+
+
 (defun dotspacemacs/layers ()
   "Configuration Layers declaration."
   (setq-default
@@ -199,6 +216,7 @@ before layers configuration."
   ;(require 'company-sourcekit)
   (require 'flyspell-lazy)
   (flyspell-lazy-mode 1)
+  (setq dnd-open-file-other-window 1)
   )
 
 (defun dotspacemacs/config ()
