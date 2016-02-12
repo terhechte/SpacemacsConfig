@@ -406,6 +406,9 @@ layers configuration."
   ;; Set the same selection color as native OSX
   (set-face-attribute 'region nil :background "#0069D9")
 
+  ;; Visual Line Mode
+  (global-visual-line-mode)
+
   ;; enable flycheck for swift
   ;; disable for now, flycheck doesn't work yet with complex projects
   ;; (i.e. frameworks, etc)
