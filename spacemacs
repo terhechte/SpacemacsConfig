@@ -19,19 +19,43 @@
 
 ;; Force railwaycats emacs to open drag and drop files
 ;; in a new frame instead of replacing the currently selected buffer
-(defun my-dnd-open-local-file (uri _action)
+;; We're overwriting it right now, as defadvice seems to not work
+(defun dnd-open-local-file (uri _action)
   (let* ((f (dnd-get-local-file-name uri t)))
     (if (and f (file-readable-p f))
       (find-file-other-frame f)
       (error "Can not read %s" uri))))
 
+;; This doesn't work right now...
 (defadvice mac-ae-open-documents (around my-mac-ae-open-documents)
   "Temporarily replace `dnd-open-local-file`"
   (progn
-    (advice-add 'dnd-open-local-file :around #'my-dnd-open-local-file)
+    (advice-add 'dnd-open-local-file :override #'my-dnd-open-local-file)
     ad-do-it
-    (advice-remove 'dnd-open-local-file #'my-dnd-open-local-file)))
+    ;(advice-remove 'dnd-open-local-file #'my-dnd-open-local-file)
+    ))
 
+;; This is *awesome*
+;; This replaces evils `insert mode` with native emacs mode, which has
+;; all the bells and whistles one can hope for in insert state.
+;; It also maps escape to leave insert mode
+(defalias 'evil-insert-state 'evil-emacs-state)
+(define-key evil-emacs-state-map [escape] 'evil-force-normal-state)
+
+;; *This* on the other hand adds logic to the main C-g exit entrypoint
+;; to leave insert  mode instead iff we're in evil and iff we're in
+;; emacs-mode *or* insert-mode.
+;; Since this is called at the utmost priority, this now will always
+;; leave insert mode before doing anything crazy.
+(defadvice keyboard-escape-quit (around my-keyboard-escape-quit activate)
+  (let (orig-one-window-p)
+    (when (and (bound-and-true-p evil-mode)
+            (or (evil-insert-state-p)
+              (evil-emacs-state-p)))
+      (evil-force-normal-state))
+    (unwind-protect
+      ad-do-it
+      )))
 
 (defun dotspacemacs/layers ()
   "Configuration Layers declaration."
@@ -214,9 +238,26 @@ before layers configuration."
 
   ;; Swift Company Mode
   ;(require 'company-sourcekit)
+
+  ;; Flyspell hampers my C-g quit binding to leave insert mode
+  ;; setting flyspell to do its thing with a delay via flyspell-lazy
+  ;; seems to fix this
   (require 'flyspell-lazy)
   (flyspell-lazy-mode 1)
+
+  ;; Add a deletion hook so that when I close an emacs window/frmame,
+  ;; all the buffers in there will be killed as well.
+  ;; http://stackoverflow.com/questions/1854573/kill-the-associated-buffer-when-close-the-emacs-client-frame-by-pressing-altf4
+  (add-hook 'delete-frame-functions
+          (lambda (frame)
+            (let* ((window (frame-selected-window frame))
+                   (buffer (and window (window-buffer window))))
+              (when (and buffer (buffer-file-name buffer))
+                (kill-buffer buffer)))))
+
   (setq dnd-open-file-other-window 1)
+
+
   )
 
 (defun dotspacemacs/config ()
@@ -241,6 +282,8 @@ layers configuration."
 
   (define-key evil-normal-state-map (kbd "C-.") 'execute-extended-command)
   (define-key evil-insert-state-map (kbd "C-.") 'execute-extended-command)
+
+  (define-key evil-emacs-state-map (kbd "C-.") 'execute-extended-command)
 
   (global-set-key (kbd "s-o") 'find-file)
   (global-set-key (kbd "s-p") 'find-file-at-point)
