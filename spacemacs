@@ -39,8 +39,8 @@
 ;; This replaces evils `insert mode` with native emacs mode, which has
 ;; all the bells and whistles one can hope for in insert state.
 ;; It also maps escape to leave insert mode
-(defalias 'evil-insert-state 'evil-emacs-state)
-(define-key evil-emacs-state-map [escape] 'evil-force-normal-state)
+;(defalias 'evil-insert-state 'evil-emacs-state)
+;(define-key evil-emacs-state-map [escape] 'evil-force-normal-state)
 
 ;; *This* on the other hand adds logic to the main C-g exit entrypoint
 ;; to leave insert  mode instead iff we're in evil and iff we're in
@@ -97,7 +97,6 @@
    ;; configuration in `dotspacemacs/config'.
    dotspacemacs-additional-packages
    '(
-     company
      switch-window
      swift-mode
      ac-dabbrev
@@ -236,8 +235,18 @@ before layers configuration."
   (add-to-list 'org-src-lang-modes (cons "swift" 'swift))
   ;; C-' to enter source block edit mode!
 
+  ;; Yasnippet for company
+  (require 'yasnippet)
+  (yas-global-mode 1)
+
   ;; Swift Company Mode
-  ;(require 'company-sourcekit)
+ (setq exec-path (append exec-path '("/usr/local/bin/sourcekittendaemon")))
+  (require 'company-sourcekit)
+  (add-to-list 'company-backends 'company-sourcekit)
+
+  (add-hook 'swift-mode-hook (lambda ()
+                               (set (make-local-variable 'company-backends) '(company-sourcekit))
+                               (company-mode)))
 
   ;; Flyspell hampers my C-g quit binding to leave insert mode
   ;; setting flyspell to do its thing with a delay via flyspell-lazy
@@ -296,6 +305,15 @@ layers configuration."
 
   ;; Open new files (dropped onto emacs) in a new frame/window
   (setq ns-pop-up-frames t)
+
+  ;; evil & spacemcas key sequence for exit
+  (setq-default evil-escape-key-sequence "jk")
+
+  ;; emacs key sequence for exit
+  (require 'key-chord)
+  (key-chord-mode 1)
+  (key-chord-define-global "jk" 'evil-escape)
+  ;; more examples in custom/key-chords.el
 
   ;; When drag/dropping files onto emacs, don't insert into the buffer,
   ;; but open the files
