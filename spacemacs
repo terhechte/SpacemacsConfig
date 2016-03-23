@@ -27,13 +27,13 @@
       (error "Can not read %s" uri))))
 
 ;; This doesn't work right now...
-(defadvice mac-ae-open-documents (around my-mac-ae-open-documents)
-  "Temporarily replace `dnd-open-local-file`"
-  (progn
-    (advice-add 'dnd-open-local-file :override #'my-dnd-open-local-file)
-    ad-do-it
-    ;(advice-remove 'dnd-open-local-file #'my-dnd-open-local-file)
-    ))
+;(defadvice mac-ae-open-documents (around my-mac-ae-open-documents)
+;  "Temporarily replace `dnd-open-local-file`"
+;  (progn
+;    (advice-add 'dnd-open-local-file :override #'my-dnd-open-local-file)
+;    ad-do-it
+;    ;(advice-remove 'dnd-open-local-file #'my-dnd-open-local-file)
+;    ))
 
 ;; This is *awesome*
 ;; This replaces evils `insert mode` with native emacs mode, which has
@@ -47,15 +47,21 @@
 ;; emacs-mode *or* insert-mode.
 ;; Since this is called at the utmost priority, this now will always
 ;; leave insert mode before doing anything crazy.
-(defadvice keyboard-escape-quit (around my-keyboard-escape-quit activate)
-  (let (orig-one-window-p)
-    (when (and (bound-and-true-p evil-mode)
-            (or (evil-insert-state-p)
-              (evil-emacs-state-p)))
-      (evil-force-normal-state))
-    (unwind-protect
-      ad-do-it
-      )))
+;(defadvice keyboard-escape-quit (around my-keyboard-escape-quit activate)
+ ;j (let (orig-one-window-p)
+;    (when (and (bound-and-true-p evil-mode)
+ ;           (or (evil-insert-state-p)
+;              (evil-emacs-state-p)))
+;      (evil-force-normal-state))
+;    (unwind-protect
+;      ad-do-it
+;      )))
+
+(defun dotspacemacs/user-config ()
+  "This is were you can ultimately override default Spacemacs configuration.
+This function is called at the very end of Spacemacs initialization."
+  (setq deft-directory "~/Dropbox/org")
+  (setq powerline-default-separator 'arrow))
 
 (defun dotspacemacs/layers ()
   "Configuration Layers declaration."
@@ -90,6 +96,8 @@
      javascript
      html
 
+      deft
+
      )
    ;; List of additional packages that will be installed wihout being
    ;; wrapped in a layer. If you need some configuration for these
@@ -121,7 +129,8 @@ before layers configuration."
   (setq-default
    ;; Either `vim' or `emacs'. Evil is always enabled but if the variable
    ;; is `emacs' then the `holy-mode' is enabled at startup.
-   dotspacemacs-editing-style 'vim
+   ;dotspacemacs-editing-style 'vim
+    dotspacemacs-editing-style 'hybrid
    ;; If non nil output loading progress in `*Messages*' buffer.
    dotspacemacs-verbose-loading nil
    ;; Specify the startup banner. Default value is `official', it displays
@@ -307,12 +316,12 @@ layers configuration."
   (setq ns-pop-up-frames t)
 
   ;; evil & spacemcas key sequence for exit
-  (setq-default evil-escape-key-sequence "jk")
+  ;(setq-default evil-escape-key-sequence "jk")
 
   ;; emacs key sequence for exit
-  (require 'key-chord)
-  (key-chord-mode 1)
-  (key-chord-define-global "jk" 'evil-escape)
+  ;(require 'key-chord)
+  ;(key-chord-mode 1)
+  ;(key-chord-define-global "jk" 'evil-escape)
   ;; more examples in custom/key-chords.el
 
   ;; When drag/dropping files onto emacs, don't insert into the buffer,
@@ -424,8 +433,15 @@ layers configuration."
   ;; Set the same selection color as native OSX
   (set-face-attribute 'region nil :background "#0069D9")
 
+  ;; Ditaa support in babel
+  (org-babel-do-load-languages
+    'org-babel-load-languages
+    '((ditaa . t)))
+
+  (setq deft-directory "~/Dropbox/org")
+
   ;; Visual Line Mode
-  (global-visual-line-mode)
+  ;(global-visual-line-mode)
 
   ;; enable flycheck for swift
   ;; disable for now, flycheck doesn't work yet with complex projects
