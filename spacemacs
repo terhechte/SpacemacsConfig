@@ -57,11 +57,188 @@
 ;      ad-do-it
 ;      )))
 
-(defun dotspacemacs/user-config ()
-  "This is were you can ultimately override default Spacemacs configuration.
-This function is called at the very end of Spacemacs initialization."
-  (setq deft-directory "~/Dropbox/org")
-  (setq powerline-default-separator 'arrow))
+
+;; Fixing something which was changed in an earlier org-commit:
+;; http://orgmode.org/cgit.cgi/org-mode.git/commit/?id=f8b42e8
+;; FIXME: Move to a different file
+(eval-after-load "ooorg-mode" ; we've disable it for now
+'(progn
+  (defface org-block-background '((t ()))
+    "Face used for the source block background")
+
+  (defun org-fontify-meta-lines-and-blocks-1 (limit)
+    "Fontify #+ lines and blocks."
+    (let ((case-fold-search t))
+      (if (re-search-forward
+            "^\\([ \t]*#\\(\\(\\+[a-zA-Z]+:?\\| \\|$\\)\\(_\\([a-zA-Z]+\\)\\)?\\)[ \t]*\\(\\([^ \t\n]*\\)[ \t]*\\(.*\\)\\)\\)"
+            limit t)
+        (let ((beg (match-beginning 0))
+               (block-start (match-end 0))
+               (block-end nil)
+               (lang (match-string 7))
+               (beg1 (line-beginning-position 2))
+               (dc1 (downcase (match-string 2)))
+               (dc3 (downcase (match-string 3)))
+               end end1 quoting block-type ovl)
+          (cond
+            ((member dc1 '("+html:" "+ascii:" "+latex:"))
+              ;; a single line of backend-specific content
+              (org-remove-flyspell-overlays-in (match-beginning 0) (match-end 0))
+              (remove-text-properties (match-beginning 0) (match-end 0)
+                '(display t invisible t intangible t))
+              (add-text-properties (match-beginning 1) (match-end 3)
+                '(font-lock-fontified t face org-meta-line))
+              (add-text-properties (match-beginning 6) (+ (match-end 6) 1)
+                '(font-lock-fontified t face org-block))
+                                        ; for backend-specific code
+              t)
+            ((and (match-end 4) (equal dc3 "+begin"))
+              ;; Truly a block
+              (setq block-type (downcase (match-string 5))
+                quoting (member block-type org-protecting-blocks))
+              (when (re-search-forward
+                      (concat "^[ \t]*#\\+end" (match-string 4) "\\>.*")
+                      nil t)  ;; on purpose, we look further than LIMIT
+                (setq end (min (point-max) (match-end 0))
+                  end1 (min (point-max) (1- (match-beginning 0))))
+                (setq block-end (match-beginning 0))
+                (when quoting
+                  (org-remove-flyspell-overlays-in beg1 end1)
+                  (remove-text-properties beg end
+                    '(display t invisible t intangible t)))
+                (add-text-properties
+                  beg end '(font-lock-fontified t font-lock-multiline t))
+                (add-text-properties beg beg1 '(face org-meta-line))
+                (org-remove-flyspell-overlays-in beg beg1)
+                (add-text-properties	; For end_src
+                  end1 (min (point-max) (1+ end)) '(face org-meta-line))
+                (org-remove-flyspell-overlays-in end1 end)
+                (cond
+                  ((and lang (not (string= lang "")) org-src-fontify-natively)
+                    (org-src-font-lock-fontify-block lang block-start block-end)
+
+                    ;;--
+                    ;; remove old background overlays
+                    (mapc (lambda (ov)
+                            (if (eq (overlay-get ov 'face) 'org-block-background)
+                              (delete-overlay ov)))
+                      (overlays-at (/ (+ beg1 block-end) 2)))
+                    ;; add a background overlay
+                    (setq ovl (make-overlay beg1 block-end))
+                    (overlay-put ovl 'face 'org-block-background)
+                    (overlay-put ovl 'evaporate t)) ; make it go away when empty
+
+                                        ;(add-text-properties beg1 block-end '(src-block t)))
+                  ;;--
+                  (quoting
+                    (add-text-properties beg1 (min (point-max) (1+ end1))
+                      '(face org-block))) ; end of source block
+                  ((not org-fontify-quote-and-verse-blocks))
+                  ((string= block-type "quote")
+                    (add-text-properties beg1 (min (point-max) (1+ end1)) '(face org-quote)))
+                  ((string= block-type "verse")
+                    (add-text-properties beg1 (min (point-max) (1+ end1)) '(face org-verse))))
+                (add-text-properties beg beg1 '(face org-block-begin-line))
+                (add-text-properties (min (point-max) (1+ end)) (min (point-max) (1+ end1))
+                  '(face org-block-end-line))
+                t))
+            ((member dc1 '("+title:" "+author:" "+email:" "+date:"))
+              (org-remove-flyspell-overlays-in
+                (match-beginning 0)
+                (if (equal "+title:" dc1) (match-end 2) (match-end 0)))
+              (add-text-properties
+                beg (match-end 3)
+                (if (member (intern (substring dc1 1 -1)) org-hidden-keywords)
+                  '(font-lock-fontified t invisible t)
+                  '(font-lock-fontified t face org-document-info-keyword)))
+              (add-text-properties
+                (match-beginning 6) (min (point-max) (1+ (match-end 6)))
+                (if (string-equal dc1 "+title:")
+                  '(font-lock-fontified t face org-document-title)
+                  '(font-lock-fontified t face org-document-info))))
+            ((or (equal dc1 "+results")
+               (member dc1 '("+begin:" "+end:" "+caption:" "+label:"
+                              "+orgtbl:" "+tblfm:" "+tblname:" "+results:"
+                              "+call:" "+header:" "+headers:" "+name:"))
+               (and (match-end 4) (equal dc3 "+attr")))
+              (org-remove-flyspell-overlays-in
+                (match-beginning 0)
+                (if (equal "+caption:" dc1) (match-end 2) (match-end 0)))
+              (add-text-properties
+                beg (match-end 0)
+                '(font-lock-fontified t face org-meta-line))
+              t)
+            ((member dc3 '(" " ""))
+              (org-remove-flyspell-overlays-in beg (match-end 0))
+              (add-text-properties
+                beg (match-end 0)
+                '(font-lock-fontified t face font-lock-comment-face)))
+            (t ;; just any other in-buffer setting, but not indented
+              (org-remove-flyspell-overlays-in (match-beginning 0) (match-end 0))
+              (add-text-properties
+                beg (match-end 0)
+                '(font-lock-fontified t face org-meta-line))
+              t))))))
+
+  (defun org-in-src-block-p (&optional inside)
+    "Whether point is in a code source block.
+When INSIDE is non-nil, don't consider we are within a src block
+when point is at #+BEGIN_SRC or #+END_SRC."
+    (let ((case-fold-search t) ov)
+
+      (or (and (setq ov (overlays-at (point)))
+            (memq 'org-block-background
+              (overlay-properties (car ov))))
+                                        ;(or (and (eq (get-char-property (point) 'src-block) t))
+
+        (and (not inside)
+          (save-match-data
+            (save-excursion
+              (beginning-of-line)
+              (looking-at ".*#\\+\\(begin\\|end\\)_src")))))))
+
+    (org-setup-fonts-colors)
+))
+
+
+
+
+
+
+
+
+;(print (font-family-list))
+;(set-face-font 'default "M+ 1mn-14")
+;; Interesting, it seems fira mono is the *fastest* font for Emacs on OSX
+(set-face-font 'default "Fira Mono-12")
+(set-face-font 'variable-pitch "Helvetica Neue-14")
+(copy-face 'default 'fixed-pitch)
+
+(defun org-setup-fonts-colors ()
+  (interactive)
+  "Change org-mode variable pitch font with src to fixed pitch with black background"
+  ;; disable the highlight line. In org we only need a cursor
+  (hl-line-mode -1)
+  ;; Also enable relative linum mode
+  (linum-relative-mode)
+  ;; whatever this does: http://stackoverflow.com/questions/28428382/how-to-manage-fonts-in-emacs
+  (buffer-face-mode t)
+  (variable-pitch-mode t)
+  (setq original-color (face-background 'org-default))
+  (setq line-spacing 0.3)
+  (dolist
+    (face '(org-table org-verbatim org-block))
+    (set-face-attribute face nil :family "M+ 1mn"))
+  (set-face-background 'org-block-background "black")
+  (set-face-background 'org-block-end-line original-color)
+  (set-face-background 'org-block-begin-line original-color))
+
+;(defun org-use-white-theme ()
+;  (interactive)
+;  ;; have to use this: https://github.com/vic/color-theme-buffer-local/blob/master/load-theme-buffer-local.el
+;  (load-theme-buffer-local)
+;  )
+
 
 (defun dotspacemacs/layers ()
   "Configuration Layers declaration."
@@ -72,33 +249,38 @@ This function is called at the very end of Spacemacs initialization."
    ;; List of configuration layers to load. If it is the symbol `all' instead
    ;; of a list then all discovered layers will be installed.
    dotspacemacs-configuration-layers
-   '(
-     ;; ----------------------------------------------------------------
-     ;; Example of useful layers you may want to use right away.
-     ;; Uncomment some layer names and press <SPC f e R> (Vim style) or
-     ;; <M-m f e R> (Emacs style) to install them.
-     ;; ----------------------------------------------------------------
-     auto-completion
-     ;; better-defaults
-     emacs-lisp
-     (git :variables
-          git-gutter-use-fringe t)
-     markdown
-     org
-     ;; shell
-     syntax-checking
-     osx
+    '(
+       ;; ----------------------------------------------------------------
+       ;; Example of useful layers you may want to use right away.
+       ;; Uncomment some layer names and press <SPC f e R> (Vim style) or
+       ;; <M-m f e R> (Emacs style) to install them.
+       ;; ----------------------------------------------------------------
+       auto-completion
+       ;; better-defaults
+       emacs-lisp
+       (git :variables
+         git-gutter-use-fringe t)
+       markdown
+       org
+       emoji
+       ;; shell
+       syntax-checking
+       osx
 
-     ;; Add support for my most used languages
-     clojure
-     python
-     dash ; todo, create a keybinding for dash-at-point
-     javascript
-     html
+       ;; Add support for my most used languages
+       clojure
+       python
+       dash ; todo, create a keybinding for dash-at-point
+       javascript
+       html
 
-      deft
+       ;; http://jblevins.org/projects/deft/
+       deft
 
-     )
+       ;; more themes
+       ;; http://themegallery.robdor.com
+       themes-megapack
+       )
    ;; List of additional packages that will be installed wihout being
    ;; wrapped in a layer. If you need some configuration for these
    ;; packages then consider to create a layer, you can also put the
@@ -106,12 +288,13 @@ This function is called at the very end of Spacemacs initialization."
    dotspacemacs-additional-packages
    '(
      switch-window
-     swift-mode
+     ;swift-mode
      ac-dabbrev
      dabbrev
      simpleclip
      restclient
-     company-mode
+;FXBACK
+;     company-mode
      )
    ;; A list of packages and/or extensions that will not be install and loaded.
    dotspacemacs-excluded-packages '()
@@ -146,16 +329,28 @@ before layers configuration."
    ;; List of themes, the first of the list is loaded when spacemacs starts.
    ;; Press <SPC> T n to cycle to the next theme in the list (works great
    ;; with 2 themes variants, one dark and one light)
-   dotspacemacs-themes '(zenburn
-                         solarized-light
-                         solarized-dark
-                         leuven
-                         monokai)
+    dotspacemacs-themes '(
+                           ;; default
+                           afternoon
+                           monokai
+                           ;; bright
+                           espresso
+                           sanityinc-tomorrow-day
+                           dichromacy
+                           tango-plus
+                           tsdh-light
+                           solarized-light
+                           ;; dark
+                           afternoon
+                           zenburn
+                           solarized-dark
+                           )
    ;; If non nil the cursor color matches the state color.
-   dotspacemacs-colorize-cursor-according-to-state t
+   dotspacemacs-colorize-cursor-according-to-state nil
    ;; Default font. `powerline-scale' allows to quickly tweak the mode-line
    ;; size to make separators look not too crappy.
-   dotspacemacs-default-font '("Source Code Pro"
+   ;; dotspacemacs-default-font '("Source Code Pro"
+   dotspacemacs-default-font '("Fira Mono"
                                :size 13
                                :weight normal
                                :width normal
@@ -206,7 +401,7 @@ before layers configuration."
    ;; Transparency can be toggled through `toggle-transparency'.
    dotspacemacs-inactive-transparency 90
    ;; If non nil unicode symbols are displayed in the mode line.
-   dotspacemacs-mode-line-unicode-symbols t
+   dotspacemacs-mode-line-unicode-symbols nil
    ;; If non nil smooth scrolling (native-scrolling) is enabled. Smooth
    ;; scrolling overrides the default behavior of Emacs which recenters the
    ;; point when it reaches the top or bottom of the screen.
@@ -228,66 +423,21 @@ before layers configuration."
    )
   ;; User initialization goes here
 
-  ;; mouse-2 will be Option+Click and mouse-3 will be Cmd+Click
-  (setq mac-emulate-three-button-mouse t)
-
-  ;; Load Swift Org Mode and customize the org mode languages
-
-  (require 'ob-swift)
-  (org-babel-do-load-languages
-    'org-babel-load-languages
-    '((python . t)(sh . t)(R . t)(C . t)(clojure . t)(lisp . t) (sql . t) (js . t)  (emacs-lisp . t) (css . t)(swift . t)  ))
-
-  ;; fontification in source blocks
-  (setq org-src-fontify-natively t)
-  ;; add swift-mode to fontification
-  (add-to-list 'org-src-lang-modes (cons "swift" 'swift))
-  ;; C-' to enter source block edit mode!
-
-  ;; Yasnippet for company
-  (require 'yasnippet)
-  (yas-global-mode 1)
-
-  ;; Swift Company Mode
- (setq exec-path (append exec-path '("/usr/local/bin/sourcekittendaemon")))
-  (require 'company-sourcekit)
-  (add-to-list 'company-backends 'company-sourcekit)
-
-  (add-hook 'swift-mode-hook (lambda ()
-                               (set (make-local-variable 'company-backends) '(company-sourcekit))
-                               (company-mode)))
-
-  ;; Flyspell hampers my C-g quit binding to leave insert mode
-  ;; setting flyspell to do its thing with a delay via flyspell-lazy
-  ;; seems to fix this
-  (require 'flyspell-lazy)
-  (flyspell-lazy-mode 1)
-
-  ;; Add a deletion hook so that when I close an emacs window/frmame,
-  ;; all the buffers in there will be killed as well.
-  ;; http://stackoverflow.com/questions/1854573/kill-the-associated-buffer-when-close-the-emacs-client-frame-by-pressing-altf4
-  (add-hook 'delete-frame-functions
-          (lambda (frame)
-            (let* ((window (frame-selected-window frame))
-                   (buffer (and window (window-buffer window))))
-              (when (and buffer (buffer-file-name buffer))
-                (kill-buffer buffer)))))
-
-  (setq dnd-open-file-other-window 1)
-
-
   )
 
-(defun dotspacemacs/config ()
+(defun dotspacemacs/user-config ()
   "Configuration function.
  This function is called at the very end of Spacemacs initialization after
 layers configuration."
+
+(require 'swift-mode)
 
   ;; Sane indent for lisp & clojure. otherwise even simple
   ;; things quickly become code skyscrapers when working with cljs and om
   (setq lisp-indent-offset 2)
 
   (define-key evil-insert-state-map "\C-g" 'evil-normal-state)
+  (define-key evil-hybrid-state-map "\C-g" 'evil-normal-state)
 
   (define-key evil-insert-state-map "\C-e" 'end-of-line)
   (define-key evil-visual-state-map "\C-e" 'evil-end-of-line)
@@ -300,6 +450,7 @@ layers configuration."
 
   (define-key evil-normal-state-map (kbd "C-.") 'execute-extended-command)
   (define-key evil-insert-state-map (kbd "C-.") 'execute-extended-command)
+  (define-key evil-hybrid-state-map (kbd "C-.") 'execute-extended-command)
 
   (define-key evil-emacs-state-map (kbd "C-.") 'execute-extended-command)
 
@@ -360,7 +511,7 @@ layers configuration."
         (progn ; there is a text selection
           (eval-region (region-beginning) (region-end)))
       (progn ; user did not have text selection feature on
-        (eval-last-sexp-1 nil))))
+        (eval-last-sexp nil))))
 
   (defun sql-eval-region ()
     (interactive)
@@ -433,12 +584,8 @@ layers configuration."
   ;; Set the same selection color as native OSX
   (set-face-attribute 'region nil :background "#0069D9")
 
-  ;; Ditaa support in babel
-  (org-babel-do-load-languages
-    'org-babel-load-languages
-    '((ditaa . t)))
-
   (setq deft-directory "~/Dropbox/org")
+  (setq deft-recursive t)
 
   ;; Visual Line Mode
   ;(global-visual-line-mode)
@@ -448,7 +595,93 @@ layers configuration."
   ;; (i.e. frameworks, etc)
   ;;(add-to-list 'flycheck-checkers 'swift)
 
+  ;; mouse-2 will be Option+Click and mouse-3 will be Cmd+Click
+  (setq mac-emulate-three-button-mouse t)
+
+  (linum-relative-global-mode)
+
+  ;; Load Swift Org Mode and customize the org mode languages
+  ;; 
+  ;;Since version 0.104, spacemacs uses the =org= version from the org ELPA
+  ;;repository instead of the one shipped with emacs. Then, any =org= related code
+  ;;should not be loaded before =dotspacemacs/user-config=, otherwise both versions
+  ;;will be loaded and will conflict.
+  (with-eval-after-load 'org
+    (require 'ob-swift)
+
+    ;(org-setup-fonts-colors)
+
+    (org-babel-do-load-languages
+      'org-babel-load-languages
+      '((ditaa . t)(python . t)(sh . t)(R . t)(C . t)(clojure . t)(lisp . t) (sql . t) (js . t)  (emacs-lisp . t) (css . t) (swift . t) )) 
+
+    ;; fontification in source blocks
+    (setq org-src-fontify-natively t)
+    ;; add swift-mode to fontification
+    (add-to-list 'org-src-lang-modes (cons "swift" 'swift)))
+
+  ;;To install Github related extensions like [[https://github.com/larstvei/ox-gfm][ox-gfm]] to export to Github
+  ;;flavored markdown set the variable =org-enable-github-support= to =t=.
+  (setq-default dotspacemacs-configuration-layers '(
+                                                     (org :variables
+                                                       org-enable-github-support t)))
+
+  ;; C-' to enter source block edit mode!
+
+  ;; Yasnippet for company
+  (require 'yasnippet)
+  (yas-global-mode 1)
+
+  ;; Swift Company Mode
+ (setq exec-path (append exec-path '("/usr/local/bin/sourcekittendaemon")))
+  (require 'company-sourcekit)
+  (add-to-list 'company-backends 'company-sourcekit)
+
+;FXBACk
+;  (add-hook 'swift-mode-hook (lambda ()
+;                               (set (make-local-variable 'company-backends) '(company-sourcekit))
+;                               (company-mode)))
+
+  ;; Flyspell hampers my C-g quit binding to leave insert mode
+  ;; setting flyspell to do its thing with a delay via flyspell-lazy
+  ;; seems to fix this
+  (require 'flyspell-lazy)
+  (flyspell-lazy-mode 1)
+
+  ;; Add a deletion hook so that when I close an emacs window/frmame,
+  ;; all the buffers in there will be killed as well.
+  ;; http://stackoverflow.com/questions/1854573/kill-the-associated-buffer-when-close-the-emacs-client-frame-by-pressing-altf4
+  (add-hook 'delete-frame-functions
+          (lambda (frame)
+            (let* ((window (frame-selected-window frame))
+                   (buffer (and window (window-buffer window))))
+              (when (and buffer (buffer-file-name buffer))
+                (kill-buffer buffer)))))
+
+  (setq dnd-open-file-other-window 1)
+
+  (set-cursor-color "orange")
+
+  ;; set org agenda directory
+  (setq org-agenda-files '("~/Dropbox/org/"))
 )
+
+
 
 ;; Do not write anything past this comment. This is where Emacs will
 ;; auto-generate custom variable definitions.
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(package-selected-packages
+   (quote
+    (smeargle helm-gitignore request gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger magit magit-popup git-commit with-editor emoji-cheat-sheet-plus company-emoji zenburn-theme ws-butler window-numbering which-key web-mode web-beautify volatile-highlights vi-tilde-fringe use-package toc-org tagedit switch-window swift-mode spacemacs-theme spaceline smooth-scrolling slim-mode simpleclip scss-mode sass-mode reveal-in-osx-finder restclient restart-emacs rainbow-delimiters quelpa pyvenv pytest pyenv-mode popwin pip-requirements persp-mode pcre2el pbcopy paradox page-break-lines osx-trash org-repo-todo org-present org-pomodoro org-plus-contrib org-bullets open-junk-file neotree move-text monokai-theme mmm-mode markdown-toc macrostep lorem-ipsum linum-relative leuven-theme less-css-mode launchctl json-mode js2-refactor js-doc jade-mode info+ indent-guide ido-vertical-mode hy-mode hungry-delete htmlize hl-todo highlight-parentheses highlight-numbers highlight-indentation help-fns+ helm-themes helm-swoop helm-pydoc helm-projectile helm-mode-manager helm-make helm-flx helm-descbinds helm-dash helm-css-scss helm-company helm-c-yasnippet helm-ag google-translate golden-ratio gnuplot gh-md flycheck-pos-tip flx-ido fill-column-indicator fancy-battery expand-region exec-path-from-shell evil-visualstar evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state evil-jumper evil-indent-plus evil-iedit-state evil-exchange evil-escape evil-args evil-anzu emmet-mode elisp-slime-nav deft define-word dash-at-point cython-mode company-web company-tern company-statistics company-quickhelp company-anaconda coffee-mode clj-refactor clean-aindent-mode cider-eval-sexp-fu buffer-move bracketed-paste auto-yasnippet auto-highlight-symbol auto-compile aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line ac-ispell ac-dabbrev))))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(company-tooltip-common ((t (:inherit company-tooltip :weight bold :underline nil))))
+ '(company-tooltip-common-selection ((t (:inherit company-tooltip-selection :weight bold :underline nil)))))
