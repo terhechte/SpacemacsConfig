@@ -220,18 +220,19 @@ when point is at #+BEGIN_SRC or #+END_SRC."
   ;; disable the highlight line. In org we only need a cursor
   (hl-line-mode -1)
   ;; Also enable relative linum mode
-  (linum-relative-mode)
+  ;(linum-relative-mode)
   ;; whatever this does: http://stackoverflow.com/questions/28428382/how-to-manage-fonts-in-emacs
   (buffer-face-mode t)
   (variable-pitch-mode t)
-  (setq original-color (face-background 'org-default))
+  ;(setq original-color (face-background 'org-default))
   (setq line-spacing 0.3)
   (dolist
-    (face '(org-table org-verbatim org-block))
-    (set-face-attribute face nil :family "M+ 1mn"))
-  (set-face-background 'org-block-background "black")
-  (set-face-background 'org-block-end-line original-color)
-  (set-face-background 'org-block-begin-line original-color))
+    (face '(org-table org-verbatim))
+    (set-face-attribute face nil :family "Fira Mono-12"))
+  ;(set-face-background 'org-block-background "black")
+  ;(set-face-background 'org-block-end-line original-color)
+  ;(set-face-background 'org-block-begin-line original-color)
+  )
 
 ;(defun org-use-white-theme ()
 ;  (interactive)
@@ -274,6 +275,9 @@ when point is at #+BEGIN_SRC or #+END_SRC."
        javascript
        html
 
+       ;; better linum https://github.com/CodeFalling/nlinum-relative
+       ;nlinum
+
        ;; http://jblevins.org/projects/deft/
        deft
 
@@ -293,6 +297,7 @@ when point is at #+BEGIN_SRC or #+END_SRC."
      dabbrev
      simpleclip
      restclient
+      nlinum-relative
 ;FXBACK
 ;     company-mode
      )
@@ -387,7 +392,7 @@ before layers configuration."
    dotspacemacs-fullscreen-at-startup nil
    ;; If non nil `spacemacs/toggle-fullscreen' will not use native fullscreen.
    ;; Use to disable fullscreen animations in OSX."
-   dotspacemacs-fullscreen-use-non-native nil
+   dotspacemacs-fullscreen-use-non-native t
    ;; If non nil the frame is maximized when Emacs starts up.
    ;; Takes effect only if `dotspacemacs-fullscreen-at-startup' is nil.
    ;; (Emacs 24.4+ only)
@@ -466,6 +471,14 @@ layers configuration."
   ;; Open new files (dropped onto emacs) in a new frame/window
   (setq ns-pop-up-frames t)
 
+;; nlinum
+(require 'nlinum-relative)
+(nlinum-relative-setup-evil)                    ;; setup for evil
+(add-hook 'prog-mode-hook 'nlinum-relative-mode)
+(setq nlinum-relative-redisplay-delay 0)      ;; delay
+(setq nlinum-relative-current-symbol "->")      ;; or "" for display current line number
+(setq nlinum-relative-offset 0)
+
   ;; evil & spacemcas key sequence for exit
   ;(setq-default evil-escape-key-sequence "jk")
 
@@ -539,7 +552,15 @@ layers configuration."
   (evil-leader/set-key "os" 'spotify-next-track)
   (evil-leader/set-key "oa" 'spotify-info-track)
 
-
+(defun normal-escape-pre-command-handler ()
+  (interactive)
+  (pcase this-command
+    (_ (when (and (string= "C-g" (key-description (this-command-keys)))
+            (bound-and-true-p evil-mode)
+              (or (evil-insert-state-p)
+                (evil-emacs-state-p)))
+        (evil-force-normal-state)))))
+(add-hook 'pre-command-hook 'normal-escape-pre-command-handler)
 
   (defun get-buf-url (url)
     (interactive "surl to fetch:")
@@ -598,7 +619,7 @@ layers configuration."
   ;; mouse-2 will be Option+Click and mouse-3 will be Cmd+Click
   (setq mac-emulate-three-button-mouse t)
 
-  (linum-relative-global-mode)
+  ;(linum-relative-global-mode)
 
   ;; Load Swift Org Mode and customize the org mode languages
   ;; 
@@ -675,9 +696,10 @@ layers configuration."
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(ns-use-native-fullscreen nil)
  '(package-selected-packages
    (quote
-    (smeargle helm-gitignore request gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger magit magit-popup git-commit with-editor emoji-cheat-sheet-plus company-emoji zenburn-theme ws-butler window-numbering which-key web-mode web-beautify volatile-highlights vi-tilde-fringe use-package toc-org tagedit switch-window swift-mode spacemacs-theme spaceline smooth-scrolling slim-mode simpleclip scss-mode sass-mode reveal-in-osx-finder restclient restart-emacs rainbow-delimiters quelpa pyvenv pytest pyenv-mode popwin pip-requirements persp-mode pcre2el pbcopy paradox page-break-lines osx-trash org-repo-todo org-present org-pomodoro org-plus-contrib org-bullets open-junk-file neotree move-text monokai-theme mmm-mode markdown-toc macrostep lorem-ipsum linum-relative leuven-theme less-css-mode launchctl json-mode js2-refactor js-doc jade-mode info+ indent-guide ido-vertical-mode hy-mode hungry-delete htmlize hl-todo highlight-parentheses highlight-numbers highlight-indentation help-fns+ helm-themes helm-swoop helm-pydoc helm-projectile helm-mode-manager helm-make helm-flx helm-descbinds helm-dash helm-css-scss helm-company helm-c-yasnippet helm-ag google-translate golden-ratio gnuplot gh-md flycheck-pos-tip flx-ido fill-column-indicator fancy-battery expand-region exec-path-from-shell evil-visualstar evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state evil-jumper evil-indent-plus evil-iedit-state evil-exchange evil-escape evil-args evil-anzu emmet-mode elisp-slime-nav deft define-word dash-at-point cython-mode company-web company-tern company-statistics company-quickhelp company-anaconda coffee-mode clj-refactor clean-aindent-mode cider-eval-sexp-fu buffer-move bracketed-paste auto-yasnippet auto-highlight-symbol auto-compile aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line ac-ispell ac-dabbrev))))
+    (nlinum-relative nlinum ox-reveal zonokai-theme zen-and-art-theme underwater-theme ujelly-theme twilight-theme twilight-bright-theme twilight-anti-bright-theme tronesque-theme tao-theme tangotango-theme tango-plus-theme tango-2-theme sunny-day-theme sublime-themes subatomic256-theme subatomic-theme stekene-theme powerline spacegray-theme soothe-theme soft-stone-theme soft-morning-theme soft-charcoal-theme smyx-theme seti-theme reverse-theme railscasts-theme purple-haze-theme professional-theme phoenix-dark-pink-theme phoenix-dark-mono-theme pastels-on-dark-theme orgit organic-green-theme alert log4e gntp oldlace-theme occidental-theme obsidian-theme noctilux-theme niflheim-theme naquadah-theme mustang-theme monochrome-theme molokai-theme moe-theme minimal-theme material-theme lush-theme light-soap-theme json-snatcher json-reformat jbeans-theme ir-black-theme inkpot-theme parent-mode heroku-theme hemisu-theme hc-zenburn-theme haml-mode gruvbox-theme grandshell-theme gandalf-theme flx flatui-theme flatland-theme firebelly-theme farmhouse-theme smartparens iedit anzu espresso-theme dracula-theme django-theme darktooth-theme darkmine-theme darkburn-theme dakrone-theme cyberpunk-theme web-completion-data dash-functional pos-tip colorsarenice-theme color-theme-sanityinc-solarized clues-theme inflections edn paredit peg eval-sexp-fu highlight spinner queue pkg-info epl cherry-blossom-theme busybee-theme bubbleberry-theme birds-of-paradise-plus-theme packed apropospriate-theme anaconda-mode pythonic dash s ample-zen-theme ample-theme popup package-build bind-key bind-map toxi-theme py-yapf planet-theme omtose-phellack-theme majapahit-theme magit-gitflow js2-mode jazz-theme gruber-darker-theme gotham-theme evil-magit color-theme-sanityinc-tomorrow multiple-cursors cider clojure-mode badwolf-theme anti-zenburn-theme alect-themes auto-complete avy tern flycheck yasnippet company projectile helm helm-core markdown-mode async hydra f evil smeargle helm-gitignore request gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger magit magit-popup git-commit with-editor emoji-cheat-sheet-plus company-emoji zenburn-theme ws-butler window-numbering which-key web-mode web-beautify volatile-highlights vi-tilde-fringe use-package toc-org tagedit switch-window swift-mode spacemacs-theme spaceline smooth-scrolling slim-mode simpleclip scss-mode sass-mode reveal-in-osx-finder restclient restart-emacs rainbow-delimiters quelpa pyvenv pytest pyenv-mode popwin pip-requirements persp-mode pcre2el pbcopy paradox page-break-lines osx-trash org-repo-todo org-present org-pomodoro org-plus-contrib org-bullets open-junk-file neotree move-text monokai-theme mmm-mode markdown-toc macrostep lorem-ipsum linum-relative leuven-theme less-css-mode launchctl json-mode js2-refactor js-doc jade-mode info+ indent-guide ido-vertical-mode hy-mode hungry-delete htmlize hl-todo highlight-parentheses highlight-numbers highlight-indentation help-fns+ helm-themes helm-swoop helm-pydoc helm-projectile helm-mode-manager helm-make helm-flx helm-descbinds helm-dash helm-css-scss helm-company helm-c-yasnippet helm-ag google-translate golden-ratio gnuplot gh-md flycheck-pos-tip flx-ido fill-column-indicator fancy-battery expand-region exec-path-from-shell evil-visualstar evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state evil-jumper evil-indent-plus evil-iedit-state evil-exchange evil-escape evil-args evil-anzu emmet-mode elisp-slime-nav deft define-word dash-at-point cython-mode company-web company-tern company-statistics company-quickhelp company-anaconda coffee-mode clj-refactor clean-aindent-mode cider-eval-sexp-fu buffer-move bracketed-paste auto-yasnippet auto-highlight-symbol auto-compile aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line ac-ispell ac-dabbrev))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
