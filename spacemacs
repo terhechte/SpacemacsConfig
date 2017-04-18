@@ -61,150 +61,13 @@
 ;; Fixing something which was changed in an earlier org-commit:
 ;; http://orgmode.org/cgit.cgi/org-mode.git/commit/?id=f8b42e8
 ;; FIXME: Move to a different file
-(eval-after-load "ooorg-mode" ; we've disable it for now
-'(progn
-  (defface org-block-background '((t ()))
-    "Face used for the source block background")
-
-  (defun org-fontify-meta-lines-and-blocks-1 (limit)
-    "Fontify #+ lines and blocks."
-    (let ((case-fold-search t))
-      (if (re-search-forward
-            "^\\([ \t]*#\\(\\(\\+[a-zA-Z]+:?\\| \\|$\\)\\(_\\([a-zA-Z]+\\)\\)?\\)[ \t]*\\(\\([^ \t\n]*\\)[ \t]*\\(.*\\)\\)\\)"
-            limit t)
-        (let ((beg (match-beginning 0))
-               (block-start (match-end 0))
-               (block-end nil)
-               (lang (match-string 7))
-               (beg1 (line-beginning-position 2))
-               (dc1 (downcase (match-string 2)))
-               (dc3 (downcase (match-string 3)))
-               end end1 quoting block-type ovl)
-          (cond
-            ((member dc1 '("+html:" "+ascii:" "+latex:"))
-              ;; a single line of backend-specific content
-              (org-remove-flyspell-overlays-in (match-beginning 0) (match-end 0))
-              (remove-text-properties (match-beginning 0) (match-end 0)
-                '(display t invisible t intangible t))
-              (add-text-properties (match-beginning 1) (match-end 3)
-                '(font-lock-fontified t face org-meta-line))
-              (add-text-properties (match-beginning 6) (+ (match-end 6) 1)
-                '(font-lock-fontified t face org-block))
-                                        ; for backend-specific code
-              t)
-            ((and (match-end 4) (equal dc3 "+begin"))
-              ;; Truly a block
-              (setq block-type (downcase (match-string 5))
-                quoting (member block-type org-protecting-blocks))
-              (when (re-search-forward
-                      (concat "^[ \t]*#\\+end" (match-string 4) "\\>.*")
-                      nil t)  ;; on purpose, we look further than LIMIT
-                (setq end (min (point-max) (match-end 0))
-                  end1 (min (point-max) (1- (match-beginning 0))))
-                (setq block-end (match-beginning 0))
-                (when quoting
-                  (org-remove-flyspell-overlays-in beg1 end1)
-                  (remove-text-properties beg end
-                    '(display t invisible t intangible t)))
-                (add-text-properties
-                  beg end '(font-lock-fontified t font-lock-multiline t))
-                (add-text-properties beg beg1 '(face org-meta-line))
-                (org-remove-flyspell-overlays-in beg beg1)
-                (add-text-properties	; For end_src
-                  end1 (min (point-max) (1+ end)) '(face org-meta-line))
-                (org-remove-flyspell-overlays-in end1 end)
-                (cond
-                  ((and lang (not (string= lang "")) org-src-fontify-natively)
-                    (org-src-font-lock-fontify-block lang block-start block-end)
-
-                    ;;--
-                    ;; remove old background overlays
-                    (mapc (lambda (ov)
-                            (if (eq (overlay-get ov 'face) 'org-block-background)
-                              (delete-overlay ov)))
-                      (overlays-at (/ (+ beg1 block-end) 2)))
-                    ;; add a background overlay
-                    (setq ovl (make-overlay beg1 block-end))
-                    (overlay-put ovl 'face 'org-block-background)
-                    (overlay-put ovl 'evaporate t)) ; make it go away when empty
-
-                                        ;(add-text-properties beg1 block-end '(src-block t)))
-                  ;;--
-                  (quoting
-                    (add-text-properties beg1 (min (point-max) (1+ end1))
-                      '(face org-block))) ; end of source block
-                  ((not org-fontify-quote-and-verse-blocks))
-                  ((string= block-type "quote")
-                    (add-text-properties beg1 (min (point-max) (1+ end1)) '(face org-quote)))
-                  ((string= block-type "verse")
-                    (add-text-properties beg1 (min (point-max) (1+ end1)) '(face org-verse))))
-                (add-text-properties beg beg1 '(face org-block-begin-line))
-                (add-text-properties (min (point-max) (1+ end)) (min (point-max) (1+ end1))
-                  '(face org-block-end-line))
-                t))
-            ((member dc1 '("+title:" "+author:" "+email:" "+date:"))
-              (org-remove-flyspell-overlays-in
-                (match-beginning 0)
-                (if (equal "+title:" dc1) (match-end 2) (match-end 0)))
-              (add-text-properties
-                beg (match-end 3)
-                (if (member (intern (substring dc1 1 -1)) org-hidden-keywords)
-                  '(font-lock-fontified t invisible t)
-                  '(font-lock-fontified t face org-document-info-keyword)))
-              (add-text-properties
-                (match-beginning 6) (min (point-max) (1+ (match-end 6)))
-                (if (string-equal dc1 "+title:")
-                  '(font-lock-fontified t face org-document-title)
-                  '(font-lock-fontified t face org-document-info))))
-            ((or (equal dc1 "+results")
-               (member dc1 '("+begin:" "+end:" "+caption:" "+label:"
-                              "+orgtbl:" "+tblfm:" "+tblname:" "+results:"
-                              "+call:" "+header:" "+headers:" "+name:"))
-               (and (match-end 4) (equal dc3 "+attr")))
-              (org-remove-flyspell-overlays-in
-                (match-beginning 0)
-                (if (equal "+caption:" dc1) (match-end 2) (match-end 0)))
-              (add-text-properties
-                beg (match-end 0)
-                '(font-lock-fontified t face org-meta-line))
-              t)
-            ((member dc3 '(" " ""))
-              (org-remove-flyspell-overlays-in beg (match-end 0))
-              (add-text-properties
-                beg (match-end 0)
-                '(font-lock-fontified t face font-lock-comment-face)))
-            (t ;; just any other in-buffer setting, but not indented
-              (org-remove-flyspell-overlays-in (match-beginning 0) (match-end 0))
-              (add-text-properties
-                beg (match-end 0)
-                '(font-lock-fontified t face org-meta-line))
-              t))))))
-
-  (defun org-in-src-block-p (&optional inside)
-    "Whether point is in a code source block.
-When INSIDE is non-nil, don't consider we are within a src block
-when point is at #+BEGIN_SRC or #+END_SRC."
-    (let ((case-fold-search t) ov)
-
-      (or (and (setq ov (overlays-at (point)))
-            (memq 'org-block-background
-              (overlay-properties (car ov))))
-                                        ;(or (and (eq (get-char-property (point) 'src-block) t))
-
-        (and (not inside)
-          (save-match-data
-            (save-excursion
-              (beginning-of-line)
-              (looking-at ".*#\\+\\(begin\\|end\\)_src")))))))
-
-    (org-setup-fonts-colors)
-))
 
 
 
-
-
-
+(defun xcode-open()
+  (interactive)
+  (let ((filename (buffer-file-name)))
+    (call-process "/bin/bash" nil t nil "-c" (format "open -a Xcode %s" filename))))
 
 
 ;(print (font-family-list))
@@ -214,25 +77,7 @@ when point is at #+BEGIN_SRC or #+END_SRC."
 (set-face-font 'variable-pitch "Helvetica Neue-14")
 (copy-face 'default 'fixed-pitch)
 
-(defun org-setup-fonts-colors ()
-  (interactive)
-  "Change org-mode variable pitch font with src to fixed pitch with black background"
-  ;; disable the highlight line. In org we only need a cursor
-  (hl-line-mode -1)
-  ;; Also enable relative linum mode
-  ;(linum-relative-mode)
-  ;; whatever this does: http://stackoverflow.com/questions/28428382/how-to-manage-fonts-in-emacs
-  (buffer-face-mode t)
-  (variable-pitch-mode t)
-  ;(setq original-color (face-background 'org-default))
-  (setq line-spacing 0.3)
-  (dolist
-    (face '(org-table org-verbatim))
-    (set-face-attribute face nil :family "Fira Mono-12"))
-  ;(set-face-background 'org-block-background "black")
-  ;(set-face-background 'org-block-end-line original-color)
-  ;(set-face-background 'org-block-begin-line original-color)
-  )
+
 
 ;(defun org-use-white-theme ()
 ;  (interactive)
@@ -251,6 +96,8 @@ when point is at #+BEGIN_SRC or #+END_SRC."
    ;; of a list then all discovered layers will be installed.
    dotspacemacs-configuration-layers
     '(
+d
+       ruby
        ;; ----------------------------------------------------------------
        ;; Example of useful layers you may want to use right away.
        ;; Uncomment some layer names and press <SPC f e R> (Vim style) or
@@ -298,6 +145,7 @@ when point is at #+BEGIN_SRC or #+END_SRC."
      simpleclip
      restclient
       nlinum-relative
+      epresent
 ;FXBACK
 ;     company-mode
      )
@@ -435,6 +283,8 @@ before layers configuration."
  This function is called at the very end of Spacemacs initialization after
 layers configuration."
 
+  (setq magit-repository-directories '( "~/Development/monorepi" "~/Development/Swift/Performance" ))
+
 (require 'swift-mode)
 
   ;; Sane indent for lisp & clojure. otherwise even simple
@@ -470,6 +320,11 @@ layers configuration."
 
   ;; Open new files (dropped onto emacs) in a new frame/window
   (setq ns-pop-up-frames t)
+
+;; Tell Magit to fill the whole buffer when opening
+(setq magit-display-buffer-function
+  #'magit-display-buffer-fullframe-status-v1)
+
 
 ;; nlinum
 (require 'nlinum-relative)
@@ -605,8 +460,8 @@ layers configuration."
   ;; Set the same selection color as native OSX
   (set-face-attribute 'region nil :background "#0069D9")
 
-  (setq deft-directory "~/Dropbox/org")
-  (setq deft-recursive t)
+  ;(setq deft-directory "~/Dropbox/org")
+  ;(setq deft-recursive t)
 
   ;; Visual Line Mode
   ;(global-visual-line-mode)
@@ -634,7 +489,8 @@ layers configuration."
 
     (org-babel-do-load-languages
       'org-babel-load-languages
-      '((ditaa . t)(python . t)(sh . t)(R . t)(C . t)(clojure . t)(lisp . t) (sql . t) (js . t)  (emacs-lisp . t) (css . t) (swift . t) )) 
+      ;;'((ditaa . t)(python . t)(sh . t)(R . t)(C . t)(clojure . t)(lisp . t) (sql . t) (js . t)  (emacs-lisp . t) (css . t) (swift . t) )) 
+    '((python . t)(sh . t)(lisp . t) (sql . t) (js . t)  (emacs-lisp . t) (css . t) (swift . t) ))
 
     ;; fontification in source blocks
     (setq org-src-fontify-natively t)
@@ -643,9 +499,7 @@ layers configuration."
 
   ;;To install Github related extensions like [[https://github.com/larstvei/ox-gfm][ox-gfm]] to export to Github
   ;;flavored markdown set the variable =org-enable-github-support= to =t=.
-  (setq-default dotspacemacs-configuration-layers '(
-                                                     (org :variables
-                                                       org-enable-github-support t)))
+  
 
   ;; C-' to enter source block edit mode!
 
@@ -684,7 +538,7 @@ layers configuration."
   (set-cursor-color "orange")
 
   ;; set org agenda directory
-  (setq org-agenda-files '("~/Dropbox/org/"))
+  ;(setq org-agenda-files '("~/Dropbox/org/"))
 )
 
 
@@ -696,14 +550,15 @@ layers configuration."
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(ns-use-native-fullscreen nil)
- '(package-selected-packages
-   (quote
-    (nlinum-relative nlinum ox-reveal zonokai-theme zen-and-art-theme underwater-theme ujelly-theme twilight-theme twilight-bright-theme twilight-anti-bright-theme tronesque-theme tao-theme tangotango-theme tango-plus-theme tango-2-theme sunny-day-theme sublime-themes subatomic256-theme subatomic-theme stekene-theme powerline spacegray-theme soothe-theme soft-stone-theme soft-morning-theme soft-charcoal-theme smyx-theme seti-theme reverse-theme railscasts-theme purple-haze-theme professional-theme phoenix-dark-pink-theme phoenix-dark-mono-theme pastels-on-dark-theme orgit organic-green-theme alert log4e gntp oldlace-theme occidental-theme obsidian-theme noctilux-theme niflheim-theme naquadah-theme mustang-theme monochrome-theme molokai-theme moe-theme minimal-theme material-theme lush-theme light-soap-theme json-snatcher json-reformat jbeans-theme ir-black-theme inkpot-theme parent-mode heroku-theme hemisu-theme hc-zenburn-theme haml-mode gruvbox-theme grandshell-theme gandalf-theme flx flatui-theme flatland-theme firebelly-theme farmhouse-theme smartparens iedit anzu espresso-theme dracula-theme django-theme darktooth-theme darkmine-theme darkburn-theme dakrone-theme cyberpunk-theme web-completion-data dash-functional pos-tip colorsarenice-theme color-theme-sanityinc-solarized clues-theme inflections edn paredit peg eval-sexp-fu highlight spinner queue pkg-info epl cherry-blossom-theme busybee-theme bubbleberry-theme birds-of-paradise-plus-theme packed apropospriate-theme anaconda-mode pythonic dash s ample-zen-theme ample-theme popup package-build bind-key bind-map toxi-theme py-yapf planet-theme omtose-phellack-theme majapahit-theme magit-gitflow js2-mode jazz-theme gruber-darker-theme gotham-theme evil-magit color-theme-sanityinc-tomorrow multiple-cursors cider clojure-mode badwolf-theme anti-zenburn-theme alect-themes auto-complete avy tern flycheck yasnippet company projectile helm helm-core markdown-mode async hydra f evil smeargle helm-gitignore request gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger magit magit-popup git-commit with-editor emoji-cheat-sheet-plus company-emoji zenburn-theme ws-butler window-numbering which-key web-mode web-beautify volatile-highlights vi-tilde-fringe use-package toc-org tagedit switch-window swift-mode spacemacs-theme spaceline smooth-scrolling slim-mode simpleclip scss-mode sass-mode reveal-in-osx-finder restclient restart-emacs rainbow-delimiters quelpa pyvenv pytest pyenv-mode popwin pip-requirements persp-mode pcre2el pbcopy paradox page-break-lines osx-trash org-repo-todo org-present org-pomodoro org-plus-contrib org-bullets open-junk-file neotree move-text monokai-theme mmm-mode markdown-toc macrostep lorem-ipsum linum-relative leuven-theme less-css-mode launchctl json-mode js2-refactor js-doc jade-mode info+ indent-guide ido-vertical-mode hy-mode hungry-delete htmlize hl-todo highlight-parentheses highlight-numbers highlight-indentation help-fns+ helm-themes helm-swoop helm-pydoc helm-projectile helm-mode-manager helm-make helm-flx helm-descbinds helm-dash helm-css-scss helm-company helm-c-yasnippet helm-ag google-translate golden-ratio gnuplot gh-md flycheck-pos-tip flx-ido fill-column-indicator fancy-battery expand-region exec-path-from-shell evil-visualstar evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state evil-jumper evil-indent-plus evil-iedit-state evil-exchange evil-escape evil-args evil-anzu emmet-mode elisp-slime-nav deft define-word dash-at-point cython-mode company-web company-tern company-statistics company-quickhelp company-anaconda coffee-mode clj-refactor clean-aindent-mode cider-eval-sexp-fu buffer-move bracketed-paste auto-yasnippet auto-highlight-symbol auto-compile aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line ac-ispell ac-dabbrev))))
+  '(org-export-async-init-file
+     "/Users/benedikt.terhechte/.emacs.d/layers/+emacs/org/local/org-async-init.el")
+ '(org-export-backends (quote (ascii html icalendar latex md odt)))
+  '(package-selected-packages
+     (quote
+       (epresent define-word zonokai-theme zenburn-theme zen-and-art-theme yapfify ws-butler window-numbering which-key web-mode web-beautify volatile-highlights vi-tilde-fringe uuidgen use-package underwater-theme ujelly-theme twilight-theme twilight-bright-theme twilight-anti-bright-theme tronesque-theme toxi-theme toc-org tao-theme tangotango-theme tango-plus-theme tango-2-theme tagedit switch-window sunny-day-theme sublime-themes subatomic256-theme subatomic-theme spacemacs-theme spaceline spacegray-theme soothe-theme soft-stone-theme soft-morning-theme soft-charcoal-theme smyx-theme smeargle slim-mode simpleclip seti-theme scss-mode sass-mode rvm ruby-tools ruby-test-mode rubocop rspec-mode robe reverse-theme reveal-in-osx-finder restclient restart-emacs rbenv rake rainbow-delimiters railscasts-theme quelpa pyvenv pytest pyenv-mode py-isort purple-haze-theme pug-mode professional-theme planet-theme pip-requirements phoenix-dark-pink-theme phoenix-dark-mono-theme persp-mode pbcopy pastels-on-dark-theme paradox osx-trash osx-dictionary orgit organic-green-theme org-projectile org-present org-pomodoro org-plus-contrib org-download org-bullets open-junk-file omtose-phellack-theme oldlace-theme occidental-theme obsidian-theme noctilux-theme nlinum-relative niflheim-theme neotree naquadah-theme mustang-theme move-text monokai-theme monochrome-theme molokai-theme moe-theme mmm-mode minitest minimal-theme material-theme markdown-toc majapahit-theme magit-gitflow macrostep lush-theme lorem-ipsum livid-mode live-py-mode linum-relative link-hint light-soap-theme less-css-mode launchctl json-mode js2-refactor js-doc jbeans-theme jazz-theme ir-black-theme inkpot-theme info+ indent-guide ido-vertical-mode hy-mode hungry-delete htmlize hl-todo highlight-parentheses highlight-numbers highlight-indentation hide-comnt heroku-theme hemisu-theme help-fns+ helm-themes helm-swoop helm-pydoc helm-projectile helm-mode-manager helm-make helm-gitignore helm-flx helm-descbinds helm-dash helm-css-scss helm-company helm-c-yasnippet helm-ag hc-zenburn-theme gruvbox-theme gruber-darker-theme grandshell-theme gotham-theme google-translate golden-ratio gnuplot gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link gh-md gandalf-theme flycheck-pos-tip flx-ido flatui-theme flatland-theme firebelly-theme fill-column-indicator farmhouse-theme fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-magit evil-lisp-state evil-indent-plus evil-iedit-state evil-exchange evil-escape evil-ediff evil-args evil-anzu espresso-theme emoji-cheat-sheet-plus emmet-mode elisp-slime-nav dumb-jump dracula-theme django-theme deft dash-at-point darktooth-theme darkokai-theme darkmine-theme darkburn-theme dakrone-theme d-mode cython-mode cyberpunk-theme company-web company-tern company-statistics company-emoji company-dcd company-anaconda column-enforce-mode color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized coffee-mode clues-theme clojure-snippets clj-refactor clean-aindent-mode cider-eval-sexp-fu chruby cherry-blossom-theme busybee-theme bundler bubbleberry-theme birds-of-paradise-plus-theme badwolf-theme auto-yasnippet auto-highlight-symbol auto-compile apropospriate-theme anti-zenburn-theme ample-zen-theme ample-theme alect-themes aggressive-indent afternoon-theme adaptive-wrap ace-window ace-link ace-jump-helm-line ac-ispell ac-dabbrev))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(company-tooltip-common ((t (:inherit company-tooltip :weight bold :underline nil))))
- '(company-tooltip-common-selection ((t (:inherit company-tooltip-selection :weight bold :underline nil)))))
+ )
