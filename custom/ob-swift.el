@@ -72,6 +72,51 @@ Emacs-lisp table, otherwise return the results as a string."
 %s
 ")
 
+(defun old-process-swift-eval-error (tmp)
+  (replace-regexp-in-string "\/.*?\:" "line:" tmp))
+
+;; ------
+
+(defun source-to-final ()
+  "Cut refs from the txt, but letting them appear as text properties."
+  (interactive)
+  (save-excursion
+    (goto-char (point-min))
+    (while (search-forward-regexp "line" nil 'noerror)
+      (let ((ref (match-string 1)))
+                                        ;(replace-match "xline") ;; cutting the ref text
+        (message ref)
+        (add-face-text-property (point) (+ (point) 5) '(:foreground "red"))
+        ))))
+
+(defun set-some-overlay-or-textproperty-here (text)
+  (add-text-properties (point) (1+ (point))
+    `(display ,(propertize text 'face 'font-lock-comment-face))))
+
+(defun process-swift-eval-error (tmp)
+  (let ((result tmp))
+    (setq result (replace-regexp-in-string "\/.*?\:" "line:" result))
+    (setq result (replace-regexp-in-string ":.?error:" ": error:\n" result))
+    (with-temp-buffer
+      (font-lock-mode)
+      (insert result)
+      (source-to-final)
+      (buffer-string)
+      )))
+
+;; ------
+
+
+(defun org-babel-eval-error-notify (exit-code stderr)
+  "Open a buffer to display STDERR and a message with the value of EXIT-CODE."
+  (let ((buf (get-buffer-create org-babel-error-buffer-name)))
+    (with-current-buffer buf
+      (goto-char (point-max))
+      ;; Modify, remove all temp file paths
+      (save-excursion (insert (process-swift-eval-error stderr))))
+    (display-buffer buf))
+  (message "Babel evaluation exited with code %S" exit-code))
+
 
 (defun org-babel-swift-evaluate
   (session body &optional result-type result-params)
@@ -80,6 +125,7 @@ If RESULT-TYPE equals 'output then return standard output as a string.
 If RESULT-TYPE equals 'value then return the value of the last statement
 in BODY as elisp."
   (when session (error "Sessions are not (yet) supported for Swift"))
+  (setq org-babel-error-buffer-name "*Emacs Swift Error Output*")
   (case result-type
     (output
      (let ((src-file (org-babel-temp-file "swift-")))

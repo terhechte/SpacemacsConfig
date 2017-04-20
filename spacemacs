@@ -5,85 +5,33 @@
 ;; Dirty way to add custom dir
 (progn (cd "~/.spacemacsConfig") (normal-top-level-add-subdirs-to-load-path) (cd "~"))
 
-;; TODO:
-;; C-n / C-p for auto-completion windows (right now, use M-n, M-p instead)
-;; figure out why C-g sometimes doesn't work
-;; this is sticky this 
-
-;; do m-x accents and then a" will enter the ä ö
-(defun accents ()
-  (interactive)
-  (set-language-environment "UTF-8")
-  (activate-input-method "latin-1-alt-postfix"))
-
-
-;; Force railwaycats emacs to open drag and drop files
-;; in a new frame instead of replacing the currently selected buffer
-;; We're overwriting it right now, as defadvice seems to not work
-(defun dnd-open-local-file (uri _action)
-  (let* ((f (dnd-get-local-file-name uri t)))
-    (if (and f (file-readable-p f))
-      (find-file-other-frame f)
-      (error "Can not read %s" uri))))
-
-;; This doesn't work right now...
-;(defadvice mac-ae-open-documents (around my-mac-ae-open-documents)
-;  "Temporarily replace `dnd-open-local-file`"
-;  (progn
-;    (advice-add 'dnd-open-local-file :override #'my-dnd-open-local-file)
-;    ad-do-it
-;    ;(advice-remove 'dnd-open-local-file #'my-dnd-open-local-file)
-;    ))
-
-;; This is *awesome*
-;; This replaces evils `insert mode` with native emacs mode, which has
-;; all the bells and whistles one can hope for in insert state.
-;; It also maps escape to leave insert mode
-;(defalias 'evil-insert-state 'evil-emacs-state)
-;(define-key evil-emacs-state-map [escape] 'evil-force-normal-state)
-
-;; *This* on the other hand adds logic to the main C-g exit entrypoint
-;; to leave insert  mode instead iff we're in evil and iff we're in
-;; emacs-mode *or* insert-mode.
-;; Since this is called at the utmost priority, this now will always
-;; leave insert mode before doing anything crazy.
-;(defadvice keyboard-escape-quit (around my-keyboard-escape-quit activate)
- ;j (let (orig-one-window-p)
-;    (when (and (bound-and-true-p evil-mode)
- ;           (or (evil-insert-state-p)
-;              (evil-emacs-state-p)))
-;      (evil-force-normal-state))
-;    (unwind-protect
-;      ad-do-it
-;      )))
-
-
-;; Fixing something which was changed in an earlier org-commit:
-;; http://orgmode.org/cgit.cgi/org-mode.git/commit/?id=f8b42e8
-;; FIXME: Move to a different file
-
-
-
 (defun xcode-open()
   (interactive)
   (let ((filename (buffer-file-name)))
     (call-process "/bin/bash" nil t nil "-c" (format "open -a Xcode %s" filename))))
 
 
-;(print (font-family-list))
-;(set-face-font 'default "M+ 1mn-14")
-;; Interesting, it seems fira mono is the *fastest* font for Emacs on OSX
-(set-face-font 'default "Fira Mono-12")
-(set-face-font 'variable-pitch "Helvetica Neue-14")
-(copy-face 'default 'fixed-pitch)
 
+;;(set-face-font 'default "Fira Mono-12")
+(set-face-font 'default "Input")
+;;(set-face-font 'variable-pitch "Helvetica Neue-14")
+(set-face-font 'variable-pitch "Avenir Next Condensed Medium")
+;(copy-face 'default 'fixed-pitch)
 
-
-;(defun org-use-white-theme ()
-;  (interactive)
-;  ;; have to use this: https://github.com/vic/color-theme-buffer-local/blob/master/load-theme-buffer-local.el
-;  (load-theme-buffer-local)
-;  )
+(add-hook 'org-mode-hook
+  '(lambda ()
+     (variable-pitch-mode 1)
+     (mapc
+       (lambda (face)
+         (set-face-attribute face nil :inherit 'fixed-pitch))
+       (list 'org-code
+         'org-link 
+         'org-block
+         'org-table
+         'org-block-begin-line
+         'org-block-end-line
+         'org-meta-line
+         'org-document-info-keyword))))
 
 
 (defun dotspacemacs/layers ()
@@ -96,8 +44,6 @@
    ;; of a list then all discovered layers will be installed.
    dotspacemacs-configuration-layers
     '(
-d
-       ruby
        ;; ----------------------------------------------------------------
        ;; Example of useful layers you may want to use right away.
        ;; Uncomment some layer names and press <SPC f e R> (Vim style) or
@@ -111,23 +57,10 @@ d
        markdown
        org
        emoji
+       html ;; web mode
        ;; shell
        syntax-checking
        osx
-
-       ;; Add support for my most used languages
-       clojure
-       python
-       dash ; todo, create a keybinding for dash-at-point
-       javascript
-       html
-
-       ;; better linum https://github.com/CodeFalling/nlinum-relative
-       ;nlinum
-
-       ;; http://jblevins.org/projects/deft/
-       deft
-
        ;; more themes
        ;; http://themegallery.robdor.com
        themes-megapack
@@ -138,16 +71,11 @@ d
    ;; configuration in `dotspacemacs/config'.
    dotspacemacs-additional-packages
    '(
-     switch-window
-     ;swift-mode
-     ac-dabbrev
-     dabbrev
-     simpleclip
-     restclient
-      nlinum-relative
-      epresent
-;FXBACK
-;     company-mode
+      switch-window
+      swift-mode
+      ac-dabbrev
+      dabbrev
+      ;epresent
      )
    ;; A list of packages and/or extensions that will not be install and loaded.
    dotspacemacs-excluded-packages '()
@@ -203,11 +131,11 @@ before layers configuration."
    ;; Default font. `powerline-scale' allows to quickly tweak the mode-line
    ;; size to make separators look not too crappy.
    ;; dotspacemacs-default-font '("Source Code Pro"
-   dotspacemacs-default-font '("Fira Mono"
-                               :size 13
-                               :weight normal
-                               :width normal
-                               :powerline-scale 1.1)
+;   dotspacemacs-default-font '("Fira Mono"
+;                               :size 13
+;                               :weight normal
+;                               :width normal
+;                               :powerline-scale 1.1)
    ;; The leader key
    dotspacemacs-leader-key "SPC"
    ;; The leader key accessible in `emacs state' and `insert state'
@@ -275,6 +203,7 @@ before layers configuration."
    dotspacemacs-default-package-repository nil
    )
   ;; User initialization goes here
+  ;(global-vi-tilde-fringe-mode -1)
 
   )
 
@@ -285,7 +214,8 @@ layers configuration."
 
   (setq magit-repository-directories '( "~/Development/monorepi" "~/Development/Swift/Performance" ))
 
-(require 'swift-mode)
+;;(require 'swift-mode)
+  (require 'epresent)
 
   ;; Sane indent for lisp & clojure. otherwise even simple
   ;; things quickly become code skyscrapers when working with cljs and om
@@ -317,37 +247,11 @@ layers configuration."
   ;; Share symmetric keys when opening encrypted fiels
   (setq epa-file-cache-passphrase-for-symmetric-encryption t)
 
-
-  ;; Open new files (dropped onto emacs) in a new frame/window
-  (setq ns-pop-up-frames t)
-
 ;; Tell Magit to fill the whole buffer when opening
 (setq magit-display-buffer-function
   #'magit-display-buffer-fullframe-status-v1)
 
-
-;; nlinum
-(require 'nlinum-relative)
-(nlinum-relative-setup-evil)                    ;; setup for evil
-(add-hook 'prog-mode-hook 'nlinum-relative-mode)
-(setq nlinum-relative-redisplay-delay 0)      ;; delay
-(setq nlinum-relative-current-symbol "->")      ;; or "" for display current line number
-(setq nlinum-relative-offset 0)
-
-  ;; evil & spacemcas key sequence for exit
-  ;(setq-default evil-escape-key-sequence "jk")
-
-  ;; emacs key sequence for exit
-  ;(require 'key-chord)
-  ;(key-chord-mode 1)
-  ;(key-chord-define-global "jk" 'evil-escape)
-  ;; more examples in custom/key-chords.el
-
-  ;; When drag/dropping files onto emacs, don't insert into the buffer,
-  ;; but open the files
-  (global-set-key [ns-drag-file] 'ns-find-file)
-
-  ;; window-splitting
+   ;; window-splitting
   (global-set-key (kbd "s-1") 'delete-other-windows)
   (global-set-key (kbd "s-2") 'split-window-horizontally)
   (global-set-key (kbd "s-3") 'split-window-vertically)
@@ -362,7 +266,7 @@ layers configuration."
   ;; Simple clip makes it possible to not overwrite clipboard during yanking
   ;; https://github.com/rolandwalker/simpleclip
   (cua-mode)
-  (simpleclip-mode 1)
+  ;(simpleclip-mode 1)
 
   ;; Remove the C-g binding for smartparens. I use C-g instead of esc or ctrl-c
   ;; to exit insert mode. With smartparens occupying it, I often couldn't
@@ -381,12 +285,6 @@ layers configuration."
       (progn ; user did not have text selection feature on
         (eval-last-sexp nil))))
 
-  (defun sql-eval-region ()
-    (interactive)
-    (when (and transient-mark-mode mark-active)
-      (progn ; there is a text selection
-        (sql-send-region (region-beginning) (region-end)))))
-
   (defun my-fast-eval ()
     (interactive)
     (cond ((eq major-mode 'clojure-mode) (cider-eval-last-sexp))
@@ -394,10 +292,20 @@ layers configuration."
           ((eval-region-or-left-sexp))))
   (global-set-key (kbd "C-'") 'my-fast-eval)
 
+(defun abcdefg ()
+  (interactive)
+  (message "u")
+  (set-frame-parameter nil 'alpha
+    (cons 50 50))
+  )
+
   (global-set-key (kbd "s-w") 'delete-frame)
   (global-set-key (kbd "s-a") 'mark-whole-buffer)
   (global-set-key (kbd "s-l") 'goto-line)
   (global-set-key (kbd "s-'") 'switch-window)
+(global-set-key (kbd "M-s--") 'spacemacs/increase-transparency)
+(global-set-key (kbd "M-s-=") 'spacemacs/decrease-transparency)
+(global-set-key (kbd "M-s-8") 'abcdefg)
 
   ;; Custom Stuff
   (evil-leader/set-key "or" 'recentf-open-files)
@@ -460,21 +368,8 @@ layers configuration."
   ;; Set the same selection color as native OSX
   (set-face-attribute 'region nil :background "#0069D9")
 
-  ;(setq deft-directory "~/Dropbox/org")
-  ;(setq deft-recursive t)
-
-  ;; Visual Line Mode
-  ;(global-visual-line-mode)
-
-  ;; enable flycheck for swift
-  ;; disable for now, flycheck doesn't work yet with complex projects
-  ;; (i.e. frameworks, etc)
-  ;;(add-to-list 'flycheck-checkers 'swift)
-
   ;; mouse-2 will be Option+Click and mouse-3 will be Cmd+Click
   (setq mac-emulate-three-button-mouse t)
-
-  ;(linum-relative-global-mode)
 
   ;; Load Swift Org Mode and customize the org mode languages
   ;; 
@@ -485,60 +380,26 @@ layers configuration."
   (with-eval-after-load 'org
     (require 'ob-swift)
 
-    ;(org-setup-fonts-colors)
-
     (org-babel-do-load-languages
       'org-babel-load-languages
-      ;;'((ditaa . t)(python . t)(sh . t)(R . t)(C . t)(clojure . t)(lisp . t) (sql . t) (js . t)  (emacs-lisp . t) (css . t) (swift . t) )) 
-    '((python . t)(sh . t)(lisp . t) (sql . t) (js . t)  (emacs-lisp . t) (css . t) (swift . t) ))
+    '((sh . t)(emacs-lisp . t)(swift . t) ))
 
     ;; fontification in source blocks
     (setq org-src-fontify-natively t)
     ;; add swift-mode to fontification
     (add-to-list 'org-src-lang-modes (cons "swift" 'swift)))
 
-  ;;To install Github related extensions like [[https://github.com/larstvei/ox-gfm][ox-gfm]] to export to Github
-  ;;flavored markdown set the variable =org-enable-github-support= to =t=.
-  
+(spacemacs/toggle-vi-tilde-fringe)
 
+;; Switch details with =(=
+(add-hook 'dired-mode-hook 'dired-hide-details-mode)
   ;; C-' to enter source block edit mode!
-
-  ;; Yasnippet for company
-  (require 'yasnippet)
-  (yas-global-mode 1)
-
-  ;; Swift Company Mode
- (setq exec-path (append exec-path '("/usr/local/bin/sourcekittendaemon")))
-  (require 'company-sourcekit)
-  (add-to-list 'company-backends 'company-sourcekit)
-
-;FXBACk
-;  (add-hook 'swift-mode-hook (lambda ()
-;                               (set (make-local-variable 'company-backends) '(company-sourcekit))
-;                               (company-mode)))
-
-  ;; Flyspell hampers my C-g quit binding to leave insert mode
-  ;; setting flyspell to do its thing with a delay via flyspell-lazy
-  ;; seems to fix this
-  (require 'flyspell-lazy)
-  (flyspell-lazy-mode 1)
-
-  ;; Add a deletion hook so that when I close an emacs window/frmame,
-  ;; all the buffers in there will be killed as well.
-  ;; http://stackoverflow.com/questions/1854573/kill-the-associated-buffer-when-close-the-emacs-client-frame-by-pressing-altf4
-  (add-hook 'delete-frame-functions
-          (lambda (frame)
-            (let* ((window (frame-selected-window frame))
-                   (buffer (and window (window-buffer window))))
-              (when (and buffer (buffer-file-name buffer))
-                (kill-buffer buffer)))))
-
-  (setq dnd-open-file-other-window 1)
 
   (set-cursor-color "orange")
 
-  ;; set org agenda directory
-  ;(setq org-agenda-files '("~/Dropbox/org/"))
+(defun ck/org-confirm-babel-evaluate (lang body)
+  (not (or (string= lang "swift") )))
+(setq org-confirm-babel-evaluate 'ck/org-confirm-babel-evaluate)
 )
 
 
@@ -550,12 +411,12 @@ layers configuration."
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
-  '(org-export-async-init-file
-     "/Users/benedikt.terhechte/.emacs.d/layers/+emacs/org/local/org-async-init.el")
+ '(org-export-async-init-file
+   "/Users/benedikt.terhechte/.emacs.d/layers/+emacs/org/local/org-async-init.el" t)
  '(org-export-backends (quote (ascii html icalendar latex md odt)))
-  '(package-selected-packages
-     (quote
-       (epresent define-word zonokai-theme zenburn-theme zen-and-art-theme yapfify ws-butler window-numbering which-key web-mode web-beautify volatile-highlights vi-tilde-fringe uuidgen use-package underwater-theme ujelly-theme twilight-theme twilight-bright-theme twilight-anti-bright-theme tronesque-theme toxi-theme toc-org tao-theme tangotango-theme tango-plus-theme tango-2-theme tagedit switch-window sunny-day-theme sublime-themes subatomic256-theme subatomic-theme spacemacs-theme spaceline spacegray-theme soothe-theme soft-stone-theme soft-morning-theme soft-charcoal-theme smyx-theme smeargle slim-mode simpleclip seti-theme scss-mode sass-mode rvm ruby-tools ruby-test-mode rubocop rspec-mode robe reverse-theme reveal-in-osx-finder restclient restart-emacs rbenv rake rainbow-delimiters railscasts-theme quelpa pyvenv pytest pyenv-mode py-isort purple-haze-theme pug-mode professional-theme planet-theme pip-requirements phoenix-dark-pink-theme phoenix-dark-mono-theme persp-mode pbcopy pastels-on-dark-theme paradox osx-trash osx-dictionary orgit organic-green-theme org-projectile org-present org-pomodoro org-plus-contrib org-download org-bullets open-junk-file omtose-phellack-theme oldlace-theme occidental-theme obsidian-theme noctilux-theme nlinum-relative niflheim-theme neotree naquadah-theme mustang-theme move-text monokai-theme monochrome-theme molokai-theme moe-theme mmm-mode minitest minimal-theme material-theme markdown-toc majapahit-theme magit-gitflow macrostep lush-theme lorem-ipsum livid-mode live-py-mode linum-relative link-hint light-soap-theme less-css-mode launchctl json-mode js2-refactor js-doc jbeans-theme jazz-theme ir-black-theme inkpot-theme info+ indent-guide ido-vertical-mode hy-mode hungry-delete htmlize hl-todo highlight-parentheses highlight-numbers highlight-indentation hide-comnt heroku-theme hemisu-theme help-fns+ helm-themes helm-swoop helm-pydoc helm-projectile helm-mode-manager helm-make helm-gitignore helm-flx helm-descbinds helm-dash helm-css-scss helm-company helm-c-yasnippet helm-ag hc-zenburn-theme gruvbox-theme gruber-darker-theme grandshell-theme gotham-theme google-translate golden-ratio gnuplot gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link gh-md gandalf-theme flycheck-pos-tip flx-ido flatui-theme flatland-theme firebelly-theme fill-column-indicator farmhouse-theme fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-magit evil-lisp-state evil-indent-plus evil-iedit-state evil-exchange evil-escape evil-ediff evil-args evil-anzu espresso-theme emoji-cheat-sheet-plus emmet-mode elisp-slime-nav dumb-jump dracula-theme django-theme deft dash-at-point darktooth-theme darkokai-theme darkmine-theme darkburn-theme dakrone-theme d-mode cython-mode cyberpunk-theme company-web company-tern company-statistics company-emoji company-dcd company-anaconda column-enforce-mode color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized coffee-mode clues-theme clojure-snippets clj-refactor clean-aindent-mode cider-eval-sexp-fu chruby cherry-blossom-theme busybee-theme bundler bubbleberry-theme birds-of-paradise-plus-theme badwolf-theme auto-yasnippet auto-highlight-symbol auto-compile apropospriate-theme anti-zenburn-theme ample-zen-theme ample-theme alect-themes aggressive-indent afternoon-theme adaptive-wrap ace-window ace-link ace-jump-helm-line ac-ispell ac-dabbrev))))
+ '(package-selected-packages
+   (quote
+    (haml-mode web-completion-data winum solarized-theme madhat2r-theme fuzzy swift-mode powerline popwin pcre2el spinner alert log4e gntp markdown-mode hydra parent-mode projectile request gitignore-mode pos-tip flycheck pkg-info epl flx magit magit-popup git-commit with-editor smartparens iedit anzu evil goto-chg undo-tree eval-sexp-fu highlight org f s diminish autothemer company bind-map bind-key yasnippet packed dash helm avy helm-core async auto-complete popup package-build epresent define-word zonokai-theme zenburn-theme zen-and-art-theme yapfify ws-butler window-numbering which-key web-mode web-beautify volatile-highlights vi-tilde-fringe uuidgen use-package underwater-theme ujelly-theme twilight-theme twilight-bright-theme twilight-anti-bright-theme tronesque-theme toxi-theme toc-org tao-theme tangotango-theme tango-plus-theme tango-2-theme tagedit switch-window sunny-day-theme sublime-themes subatomic256-theme subatomic-theme spacemacs-theme spaceline spacegray-theme soothe-theme soft-stone-theme soft-morning-theme soft-charcoal-theme smyx-theme smeargle slim-mode seti-theme scss-mode sass-mode rvm ruby-tools ruby-test-mode rubocop rspec-mode robe reverse-theme reveal-in-osx-finder restclient restart-emacs rbenv rake rainbow-delimiters railscasts-theme quelpa pyvenv pytest pyenv-mode py-isort purple-haze-theme pug-mode professional-theme planet-theme pip-requirements phoenix-dark-pink-theme phoenix-dark-mono-theme persp-mode pbcopy pastels-on-dark-theme paradox osx-trash osx-dictionary orgit organic-green-theme org-projectile org-present org-pomodoro org-plus-contrib org-download org-bullets open-junk-file omtose-phellack-theme oldlace-theme occidental-theme obsidian-theme noctilux-theme nlinum-relative niflheim-theme neotree naquadah-theme mustang-theme move-text monokai-theme monochrome-theme molokai-theme moe-theme mmm-mode minitest minimal-theme material-theme markdown-toc majapahit-theme magit-gitflow macrostep lush-theme lorem-ipsum livid-mode live-py-mode linum-relative link-hint light-soap-theme less-css-mode launchctl json-mode js2-refactor js-doc jbeans-theme jazz-theme ir-black-theme inkpot-theme info+ indent-guide ido-vertical-mode hy-mode hungry-delete htmlize hl-todo highlight-parentheses highlight-numbers highlight-indentation hide-comnt heroku-theme hemisu-theme help-fns+ helm-themes helm-swoop helm-pydoc helm-projectile helm-mode-manager helm-make helm-gitignore helm-flx helm-descbinds helm-dash helm-css-scss helm-company helm-c-yasnippet helm-ag hc-zenburn-theme gruvbox-theme gruber-darker-theme grandshell-theme gotham-theme google-translate golden-ratio gnuplot gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link gh-md gandalf-theme flycheck-pos-tip flx-ido flatui-theme flatland-theme firebelly-theme fill-column-indicator farmhouse-theme fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-magit evil-lisp-state evil-indent-plus evil-iedit-state evil-exchange evil-escape evil-ediff evil-args evil-anzu espresso-theme emoji-cheat-sheet-plus emmet-mode elisp-slime-nav dumb-jump dracula-theme django-theme deft dash-at-point darktooth-theme darkokai-theme darkmine-theme darkburn-theme dakrone-theme d-mode cython-mode cyberpunk-theme company-web company-tern company-statistics company-emoji company-dcd company-anaconda column-enforce-mode color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized coffee-mode clues-theme clojure-snippets clj-refactor clean-aindent-mode cider-eval-sexp-fu chruby cherry-blossom-theme busybee-theme bundler bubbleberry-theme birds-of-paradise-plus-theme badwolf-theme auto-yasnippet auto-highlight-symbol auto-compile apropospriate-theme anti-zenburn-theme ample-zen-theme ample-theme alect-themes aggressive-indent afternoon-theme adaptive-wrap ace-window ace-link ace-jump-helm-line ac-ispell ac-dabbrev))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
