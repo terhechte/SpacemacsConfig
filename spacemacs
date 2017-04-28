@@ -18,20 +18,21 @@
 (set-face-font 'variable-pitch "Avenir Next Condensed Medium")
 ;(copy-face 'default 'fixed-pitch)
 
-(add-hook 'org-mode-hook
-  '(lambda ()
-     (variable-pitch-mode 1)
-     (mapc
-       (lambda (face)
-         (set-face-attribute face nil :inherit 'fixed-pitch))
-       (list 'org-code
-         'org-link 
-         'org-block
-         'org-table
-         'org-block-begin-line
-         'org-block-end-line
-         'org-meta-line
-         'org-document-info-keyword))))
+;; Variable-Pitch-Org-Mode
+;;(add-hook 'org-mode-hook
+;;  '(lambda ()
+;;     (variable-pitch-mode 1)
+;;     (mapc
+;;       (lambda (face)
+;;         (set-face-attribute face nil :inherit 'fixed-pitch))
+;;       (list 'org-code
+;;         'org-link 
+;;         'org-block
+;;         'org-table
+;;         'org-block-begin-line
+;;         'org-block-end-line
+;;         'org-meta-line
+;;         'org-document-info-keyword))))
 
 
 (defun dotspacemacs/layers ()
@@ -61,6 +62,9 @@
        ;; shell
        syntax-checking
        osx
+       python
+       ruby
+       javascript
        ;; more themes
        ;; http://themegallery.robdor.com
        themes-megapack

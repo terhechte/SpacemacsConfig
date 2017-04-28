@@ -47,7 +47,7 @@
 (defgroup epresent () "This is a simple presentation mode for Emacs.")
 
 (defface epresent-title-face
-  '((t :weight bold :height 360 :underline t :inherit variable-pitch)) ;xx 360
+  '((t :weight bold :height 460 :underline t :inherit variable-pitch)) ;xx 360
   "Face used for the title of the document during the presentation."
   :group 'epresent)
 
@@ -57,7 +57,7 @@
   :group 'epresent)
 
 (defface epresent-subheading-face
-  '((t :weight bold :height 240 :inherit variable-pitch))
+  '((t :weight bold :height 340 :inherit variable-pitch))
   "Face used for any non-top-level headings in the outline during the presentation."
   :group 'epresent)
 
@@ -495,7 +495,9 @@ If nil then source blocks are initially hidden on slide change."
     (define-key map "r" 'epresent-refresh)
     (define-key map "g" 'epresent-refresh)
     ;; global controls
-    (define-key map "q" 'epresent-quit)
+    ;;(define-key map "q" 'epresent-quit)
+
+    (define-key map [f8] 'epresent-quit)
     (define-key map "1" 'epresent-top)
     (define-key map "s" 'epresent-toggle-hide-src-blocks)
     (define-key map "S" 'epresent-toggle-hide-src-block)
@@ -522,6 +524,7 @@ If nil then source blocks are initially hidden on slide change."
   (setq org-hide-pretty-entities t)
   ;;(setq mode-line-format (epresent-get-mode-line))
   (setq mode-line-format nil)
+  (toggle-truncate-lines)
   (add-hook 'org-babel-after-execute-hook 'epresent-refresh)
   (let ((org-format-latex-options
          (plist-put (copy-tree org-format-latex-options)
