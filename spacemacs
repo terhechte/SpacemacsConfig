@@ -1,4 +1,5 @@
 ;; -*- mode: emacs-lisp -*-
+
 ;; This file is loaded by Spacemacs at startup.
 ;; It must be stored in your home directory.
 
@@ -424,7 +425,10 @@ you should place your code here."
 
   (setq spaceline-all-the-icons-separator-type 'none)
   (spaceline-all-the-icons-theme)
-  (spacemacs/zoom-frm-in)
+ (spacemacs/zoom-frm-in)
+
+  (setq neo-theme 'icons)
+  (set-face-attribute 'region nil :background "#0069D9")
 
   (setq linum-relative-format "%3s ")
 
