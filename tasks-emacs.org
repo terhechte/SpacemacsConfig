@@ -1,0 +1,4 @@
+* Open Emacs Tasks
+** TODO Configure Spaceline (maybe once melpa works again? =https://github.com/TheBB/spaceline=)
+This might require all-the-icons =https://github.com/domtronn/spaceline-all-the-icons.el/blob/master/spaceline-all-the-icons.el=
+** TODO Use Evil-Collection: =https://github.com/emacs-evil/evil-collection= (once melpa is back?)
