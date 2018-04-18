@@ -80,15 +80,16 @@ values."
      auto-completion
      ;; better-defaults
      emacs-lisp
-     (git :variables git-gutter-use-fringe t)
+     git
      markdown
+     neotree
      org
-     ;;(shell :variables
-     ;;       shell-default-height 30
-     ;;       shell-default-position 'bottom)
+     (shell :variables
+            shell-default-height 30
+            shell-default-position 'bottom)
      ;; spell-checking
      syntax-checking
-     ;version-control
+     version-control
       rust
       emoji
       osx
@@ -136,6 +137,13 @@ values."
    dotspacemacs-elpa-https t
    ;; Maximum allowed time in seconds to contact an ELPA repository.
    dotspacemacs-elpa-timeout 5
+
+   ;; Set `gc-cons-threshold' and `gc-cons-percentage' when startup finishes.
+   ;; This is an advanced option and should not be changed unless you suspect
+   ;; performance issues due to garbage collection operations.
+   ;; (default '(100000000 0.1))
+   dotspacemacs-gc-cons '(100000000 0.1)
+
    ;; If non nil then spacemacs will check for updates at startup
    ;; when the current branch is not `develop'. Note that checking for
    ;; new versions works via git commands, thus it calls GitHub services
@@ -160,7 +168,7 @@ values."
    ;; directory. A string value must be a path to an image format supported
    ;; by your Emacs build.
    ;; If the value is nil then no banner is displayed. (default 'official)
-   dotspacemacs-startup-banner 'random
+   dotspacemacs-startup-banner 'official
    ;; List of items to show in startup buffer or an association list of
    ;; the form `(list-type . list-size)`. If nil then it is disabled.
    ;; Possible values for list-type are:
@@ -179,6 +187,16 @@ values."
    ;; with 2 themes variants, one dark and one light)
    dotspacemacs-themes '(misterioso
                          adwaita)
+
+   ;; Set the theme for the Spaceline. Supported themes are `spacemacs',
+   ;; `all-the-icons', `custom', `vim-powerline' and `vanilla'. The first three
+   ;; are spaceline themes. `vanilla' is default Emacs mode-line. `custom' is a
+   ;; user defined themes, refer to the DOCUMENTATION.org for more info on how
+   ;; to create your own spaceline theme. Value can be a symbol or list with\
+   ;; additional properties.
+   ;; (default '(spacemacs :separator wave :separator-scale 1.5))
+   dotspacemacs-mode-line-theme '(all-the-icons :separator none :separator-scale 1.5)
+
    ;; If non nil the cursor color matches the state color in GUI Emacs.
    dotspacemacs-colorize-cursor-according-to-state t
    ;; Default font, or prioritized list of fonts. `powerline-scale' allows to
@@ -186,8 +204,7 @@ values."
     dotspacemacs-default-font '("M+ 1mn light"
                                :size 16
                                :weight normal
-                               :width normal
-                               :powerline-scale 1.0)
+                               :width normal)
    ;; The leader key
    dotspacemacs-leader-key "SPC"
    ;; The key used for Emacs commands (M-x) (after pressing on the leader key).
@@ -332,6 +349,30 @@ values."
    ;; tool of the list. Supported tools are `ag', `pt', `ack' and `grep'.
    ;; (default '("ag" "pt" "ack" "grep"))
    dotspacemacs-search-tools '("ag" "pt" "ack" "grep")
+
+   ;; Format specification for setting the frame title.
+   ;; %a - the `abbreviated-file-name', or `buffer-name'
+   ;; %t - `projectile-project-name'
+   ;; %I - `invocation-name'
+   ;; %S - `system-name'
+   ;; %U - contents of $USER
+   ;; %b - buffer name
+   ;; %f - visited file name
+   ;; %F - frame name
+   ;; %s - process status
+   ;; %p - percent of buffer above top of window, or Top, Bot or All
+   ;; %P - percent of buffer above bottom of window, perhaps plus Top, or Bot or All
+   ;; %m - mode name
+   ;; %n - Narrow if appropriate
+   ;; %z - mnemonics of buffer, terminal, and keyboard coding systems
+   ;; %Z - like %z, but including the end-of-line format
+   ;; (default "%I@%S")
+   dotspacemacs-frame-title-format "%I@%S"
+
+   ;; Format specification for setting the icon title format
+   ;; (default nil - same as frame-title-format)
+   dotspacemacs-icon-title-format nil
+
    ;; The default package repository used if no explicit repository has been
    ;; specified with an installed package.
    ;; Not used for now. (default nil)
@@ -342,6 +383,10 @@ values."
    ;; delete only whitespace for changed lines or `nil' to disable cleanup.
    ;; (default nil)
    dotspacemacs-whitespace-cleanup nil
+
+   ;; Either nil or a number of seconds. If non-nil zone out after the specified
+   ;; number of seconds. (default nil)
+   dotspacemacs-zone-out-when-idle nil
    ))
 
 (defun dotspacemacs/user-init ()
@@ -363,9 +408,9 @@ you should place your code here."
 
 
   (require 'swift-mode)
-  (require 'memoize)
-  (require 'all-the-icons)
-  (require 'spaceline-all-the-icons)
+  ;;(require 'memoize)
+  ;;(require 'all-the-icons)
+  ;;(require 'spaceline-all-the-icons)
 
   (define-key evil-normal-state-map (kbd "C-.") 'execute-extended-command)
   (define-key evil-insert-state-map (kbd "C-.") 'execute-extended-command)
@@ -414,8 +459,8 @@ you should place your code here."
   ;; allow magit buffers in helm
   (setq helm-white-buffer-regexp-list '("\\*magit:" "\\*ansi-term"))
 
-  (setq spaceline-all-the-icons-icon-set-window-numbering 'string)
-  (setq spaceline-all-the-icons-icon-set-eyebrowse-slot nil)
+  ;;(setq spaceline-all-the-icons-icon-set-window-numbering 'string)
+  ;;(setq spaceline-all-the-icons-icon-set-eyebrowse-slot nil)
 
   ;; This sets the title bar to dark
   (when (memq window-system '(mac ns))
@@ -424,9 +469,9 @@ you should place your code here."
     ;; This will disable the title bar
     (setq frame-title-format nil))
 
-  (setq spaceline-all-the-icons-separator-type 'none)
-  (spaceline-all-the-icons-theme)
- (spacemacs/zoom-frm-in)
+  ;;(setq spaceline-all-the-icons-separator-type 'none)
+  ;;(spaceline-all-the-icons-theme)
+  (spacemacs/zoom-frm-in)
 
   (setq neo-theme 'icons)
   (set-face-attribute 'region nil :background "#0069D9")
@@ -464,3 +509,24 @@ you should place your code here."
  ;; If there is more than one, they won't work right.
  '(powerline-active2 ((t (:inherit mode-line :background "#2d3743" :foreground "white"))))
  '(powerline-inactive2 ((t (:inherit mode-line :background "#2d3743" :foreground "white")))))
+(defun dotspacemacs/emacs-custom-settings ()
+  "Emacs custom settings.
+This is an auto-generated function, do not modify its content directly, use
+Emacs customize menu instead.
+This function is called at the very end of Spacemacs initialization."
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(evil-want-Y-yank-to-eol nil)
+ '(package-selected-packages
+   '(yasnippet-snippets xterm-color symon string-inflection spaceline-all-the-icons all-the-icons memoize powerline shell-pop pippel pipenv password-generator spinner overseer org-category-capture alert log4e gntp org-brain nameless multi-term markdown-mode skewer-mode json-snatcher json-reformat multiple-cursors js2-mode importmagic epc ctable concurrent deferred impatient-mode simple-httpd parent-mode helm-xref helm-purpose window-purpose imenu-list request haml-mode gitignore-mode git-gutter-fringe+ git-gutter-fringe fringe-helper git-gutter+ git-gutter pos-tip flycheck flx evil-org magit magit-popup git-commit ghub with-editor evil-lion iedit evil-cleverparens smartparens paredit anzu highlight eshell-z eshell-prompt-extras esh-help emojify ht editorconfig counsel-projectile projectile counsel swiper ivy pkg-info epl web-completion-data dash-functional tern company centered-cursor-mode rust-mode browse-at-remote yasnippet packed anaconda-mode pythonic f dash s helm avy helm-core auto-complete popup org-plus-contrib hydra font-lock+ evil goto-chg undo-tree bind-map bind-key async diff-hl yapfify ws-butler winum which-key web-mode web-beautify volatile-highlights vi-tilde-fringe uuidgen use-package toml-mode toc-org tagedit spaceline smeargle slim-mode simpleclip scss-mode sass-mode reveal-in-osx-finder restart-emacs rainbow-delimiters racer pyvenv pytest pyenv-mode py-isort pug-mode popwin pip-requirements persp-mode pcre2el pbcopy paradox osx-trash osx-dictionary orgit org-projectile org-present org-pomodoro org-mime org-download org-bullets open-junk-file neotree move-text mmm-mode markdown-toc magit-gitflow macrostep lorem-ipsum livid-mode live-py-mode linum-relative link-hint less-css-mode launchctl json-mode js2-refactor js-doc indent-guide hy-mode hungry-delete htmlize hl-todo highlight-parentheses highlight-numbers highlight-indentation helm-themes helm-swoop helm-pydoc helm-projectile helm-mode-manager helm-make helm-gitignore helm-flx helm-descbinds helm-css-scss helm-company helm-c-yasnippet helm-ag google-translate golden-ratio gnuplot gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link gh-md fuzzy flycheck-rust flycheck-pos-tip flx-ido fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-magit evil-lisp-state evil-indent-plus evil-iedit-state evil-exchange evil-escape evil-ediff evil-args evil-anzu eval-sexp-fu emoji-cheat-sheet-plus emmet-mode elisp-slime-nav dumb-jump diminish cython-mode company-web company-tern company-statistics company-emoji company-anaconda column-enforce-mode coffee-mode clean-aindent-mode cargo auto-yasnippet auto-highlight-symbol auto-compile aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line ac-ispell)))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(powerline-active2 ((t (:inherit mode-line :background "#2d3743" :foreground "white"))))
+ '(powerline-inactive2 ((t (:inherit mode-line :background "#2d3743" :foreground "white")))))
+)
